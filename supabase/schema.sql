@@ -35,10 +35,9 @@ create table if not exists productos (
 create index if not exists productos_categoria_idx on productos(categoria_id);
 create index if not exists productos_visible_idx  on productos(visible);
 
--- Búsqueda por nombre sin acentos ni mayúsculas
-create extension if not exists unaccent;
-create index if not exists productos_nombre_idx
-  on productos using gin (to_tsvector('simple', unaccent(nombre)));
+-- La búsqueda por nombre (sin acentos, insensible a mayúsculas) la hace el
+-- front en memoria sobre el catálogo completo (ver src/lib/formato.js), no
+-- Postgres. Por eso no hace falta un índice de texto acá.
 
 -- Toca "actualizado" solo en updates
 create or replace function tocar_actualizado() returns trigger as $$
