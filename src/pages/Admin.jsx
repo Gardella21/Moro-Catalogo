@@ -17,6 +17,14 @@ export default function Admin() {
   const [editando, setEditando] = useState(null)   // objeto producto o null
   const [aviso, setAviso] = useState(null)
 
+  /* -------------------------------------------------- ajuste de precios por lote */
+  const [ajusteAbierto, setAjusteAbierto] = useState(false)
+  const [ajusteModo, setAjusteModo] = useState('categoria')   // 'categoria' | 'nombre'
+  const [ajusteCategoria, setAjusteCategoria] = useState('')
+  const [ajusteTexto, setAjusteTexto] = useState('')
+  const [ajustePorcentaje, setAjustePorcentaje] = useState('')
+  const [ajusteAplicando, setAjusteAplicando] = useState(false)
+
   /* -------------------------------------------------- sesión */
   useEffect(() => {
     if (!hayBackend) { setSesion(null); return }
@@ -78,6 +86,50 @@ export default function Admin() {
     recargar()
   }
 
+  /* -------------------------------------------------- ajuste de precios por lote */
+  const coincidenciasAjuste = useMemo(() => {
+    if (ajusteModo === 'categoria') {
+      if (!ajusteCategoria) return []
+      return productos.filter((p) => p.categoria_id === Number(ajusteCategoria))
+    }
+    const q = normalizar(ajusteTexto).trim()
+    if (!q) return []
+    return productos.filter((p) => normalizar(p.nombre).includes(q))
+  }, [productos, ajusteModo, ajusteCategoria, ajusteTexto])
+
+  async function aplicarAjuste() {
+    const pct = Number(ajustePorcentaje)
+    if (!pct || Number.isNaN(pct)) return
+    if (coincidenciasAjuste.length === 0) return
+    const signo = pct > 0 ? '+' : ''
+    if (!confirm(
+      `Vas a aplicar ${signo}${pct}% a ${coincidenciasAjuste.length} producto(s). No se puede deshacer. ¿Continuar?`
+    )) return
+
+    setAjusteAplicando(true)
+    const factor = 1 + pct / 100
+    const ajustar = (v) => (v === null || v === undefined ? v : Math.round(Number(v) * factor))
+
+    const resultados = await Promise.all(
+      coincidenciasAjuste.map((p) =>
+        supabase.from('productos').update({
+          precio_unit: ajustar(p.precio_unit),
+          precio_pack: ajustar(p.precio_pack)
+        }).eq('id', p.id)
+      )
+    )
+    setAjusteAplicando(false)
+
+    const conError = resultados.find((r) => r.error)
+    if (conError) { setAviso({ tipo: 'error', texto: conError.error.message }); return }
+
+    setAviso({ tipo: 'ok', texto: `Precios actualizados en ${coincidenciasAjuste.length} producto(s)` })
+    setAjusteAbierto(false)
+    setAjusteTexto('')
+    setAjustePorcentaje('')
+    recargar()
+  }
+
   if (sesion === undefined) return <div className="p-8 text-sm text-gris">Cargando…</div>
   if (!sesion) return null
 
@@ -119,6 +171,79 @@ export default function Admin() {
           >
             Agregar
           </button>
+        </div>
+
+        <div className="mt-3 overflow-hidden rounded-lg border border-linea bg-white">
+          <button
+            onClick={() => setAjusteAbierto((v) => !v)}
+            className="flex w-full items-center justify-between px-3 py-2.5 text-sm font-600"
+          >
+            Ajustar precios por lote
+            <span className="text-gris">{ajusteAbierto ? '−' : '+'}</span>
+          </button>
+
+          {ajusteAbierto && (
+            <div className="space-y-3 border-t border-linea px-3 py-3">
+              <div className="flex gap-2 text-sm">
+                <button
+                  onClick={() => setAjusteModo('categoria')}
+                  className={[
+                    'flex-1 rounded-md border px-3 py-2',
+                    ajusteModo === 'categoria' ? 'border-verde bg-verde/10 text-verde' : 'border-linea'
+                  ].join(' ')}
+                >
+                  Por sección
+                </button>
+                <button
+                  onClick={() => setAjusteModo('nombre')}
+                  className={[
+                    'flex-1 rounded-md border px-3 py-2',
+                    ajusteModo === 'nombre' ? 'border-verde bg-verde/10 text-verde' : 'border-linea'
+                  ].join(' ')}
+                >
+                  Por nombre
+                </button>
+              </div>
+
+              {ajusteModo === 'categoria' ? (
+                <select
+                  value={ajusteCategoria} onChange={(e) => setAjusteCategoria(e.target.value)}
+                  className="w-full rounded-lg border border-linea bg-white px-3 py-3 text-base"
+                >
+                  <option value="">Elegí una sección</option>
+                  {categorias.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+                </select>
+              ) : (
+                <input
+                  value={ajusteTexto} onChange={(e) => setAjusteTexto(e.target.value)}
+                  placeholder="Nombre o parte del nombre"
+                  className="w-full rounded-lg border border-linea px-3 py-3 text-base"
+                />
+              )}
+
+              <label className="block">
+                <span className="text-sm font-500">Porcentaje</span>
+                <input
+                  type="number" inputMode="decimal"
+                  value={ajustePorcentaje} onChange={(e) => setAjustePorcentaje(e.target.value)}
+                  placeholder="Ej: 10 para +10%, -5 para -5%"
+                  className="mt-1.5 w-full rounded-lg border border-linea px-3 py-3 text-base"
+                />
+              </label>
+
+              <p className="text-2xs text-gris cifra">
+                {coincidenciasAjuste.length} producto(s) van a cambiar de precio
+              </p>
+
+              <button
+                onClick={aplicarAjuste}
+                disabled={!ajustePorcentaje || coincidenciasAjuste.length === 0 || ajusteAplicando}
+                className="w-full rounded-lg bg-verdeOsc py-3 text-sm font-600 text-white disabled:opacity-50"
+              >
+                {ajusteAplicando ? 'Aplicando…' : 'Aplicar a los precios'}
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="mt-4 divide-y divide-linea overflow-hidden rounded-lg border border-linea bg-white">

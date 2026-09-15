@@ -7,17 +7,28 @@ const NEGOCIO = import.meta.env.VITE_NEGOCIO || 'Moro Distribuidora'
 /* ------------------------------------------------------------------ */
 /* Encabezado                                                          */
 /* ------------------------------------------------------------------ */
-export function Encabezado({ actualizado }) {
+export function Encabezado({ actualizado, sesion, onSalir }) {
   return (
     <header className="bg-verdeOsc text-white">
-      <div className="mx-auto max-w-3xl px-4 pt-5 pb-4">
-        <p className="font-cond text-[1.75rem] leading-none font-700 tracking-tight">
-          {NEGOCIO}
-        </p>
-        <p className="mt-1.5 text-sm text-white/70">
-          Lista de precios mayorista
-          {actualizado && <> · actualizada el {actualizado}</>}
-        </p>
+      <div className="mx-auto flex max-w-3xl items-start justify-between gap-3 px-4 pt-5 pb-4">
+        <div>
+          <p className="font-cond text-[1.75rem] leading-none font-700 tracking-tight">
+            {NEGOCIO}
+          </p>
+          <p className="mt-1.5 text-sm text-white/70">
+            Lista de precios mayorista
+            {actualizado && <> · actualizada el {actualizado}</>}
+          </p>
+        </div>
+
+        {sesion && (
+          <button
+            onClick={onSalir}
+            className="mt-1 shrink-0 rounded-md border border-white/25 px-3 py-1.5 text-sm text-white/90 hover:bg-white/10"
+          >
+            Cerrar sesión
+          </button>
+        )}
       </div>
     </header>
   )
@@ -26,8 +37,14 @@ export function Encabezado({ actualizado }) {
 /* ------------------------------------------------------------------ */
 /* Buscador + chips de categoría, pegados arriba al hacer scroll       */
 /* ------------------------------------------------------------------ */
-export function BarraBusqueda({ texto, setTexto, categorias, activa, setActiva, total }) {
+export function BarraBusqueda({
+  texto, setTexto, categorias, activa, setActiva,
+  subcategorias = [], subActiva, setSubActiva, total
+}) {
   const cinta = useRef(null)
+  const cintaSub = useRef(null)
+  useArrastreHorizontal(cinta)
+  useArrastreHorizontal(cintaSub)
 
   // Al cambiar de categoría, traer el chip elegido a la vista
   useEffect(() => {
@@ -68,7 +85,7 @@ export function BarraBusqueda({ texto, setTexto, categorias, activa, setActiva, 
         </div>
       </div>
 
-      <div ref={cinta} className="sin-barra overflow-x-auto">
+      <div ref={cinta} className="sin-barra cursor-grab overflow-x-auto touch-pan-x active:cursor-grabbing">
         <div className="mx-auto flex max-w-3xl gap-1.5 px-4 pb-3">
           <Chip activa={activa === null} onClick={() => setActiva(null)}>Todo</Chip>
           {categorias.map((c) => (
@@ -79,6 +96,19 @@ export function BarraBusqueda({ texto, setTexto, categorias, activa, setActiva, 
         </div>
       </div>
 
+      {subcategorias.length > 1 && (
+        <div ref={cintaSub} className="sin-barra cursor-grab overflow-x-auto touch-pan-x active:cursor-grabbing">
+          <div className="mx-auto flex max-w-3xl gap-1.5 px-4 pb-3">
+            <Chip chica activa={subActiva === null} onClick={() => setSubActiva(null)}>Todas las líneas</Chip>
+            {subcategorias.map((s) => (
+              <Chip chica key={s} activa={subActiva === s} onClick={() => setSubActiva(s)}>
+                {s}
+              </Chip>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="mx-auto max-w-3xl px-4 pb-2">
         <p className="text-2xs text-gris cifra">
           {total} {total === 1 ? 'producto' : 'productos'}
@@ -88,15 +118,16 @@ export function BarraBusqueda({ texto, setTexto, categorias, activa, setActiva, 
   )
 }
 
-function Chip({ activa, onClick, children }) {
+function Chip({ activa, onClick, children, chica }) {
   return (
     <button
       onClick={onClick}
       data-activa={activa}
       className={[
-        'shrink-0 whitespace-nowrap rounded-full px-3.5 py-2 text-sm font-medium transition-colors',
+        'shrink-0 whitespace-nowrap rounded-full font-medium transition-colors',
+        chica ? 'px-3 py-1.5 text-2xs' : 'px-3.5 py-2 text-sm',
         activa
-          ? 'bg-verdeOsc text-white'
+          ? 'bg-verde text-white'
           : 'bg-white text-tinta border border-linea hover:border-verde'
       ].join(' ')}
     >
@@ -106,46 +137,96 @@ function Chip({ activa, onClick, children }) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Fila de producto                                                    */
+/* Arrastre horizontal con mouse/trackpad para las cintas de chips.    */
+/* El scroll táctil nativo ya funciona en un celular real; esto cubre  */
+/* simuladores y navegadores de escritorio donde arrastrar con el      */
+/* mouse no dispara scroll horizontal por sí solo.                     */
 /* ------------------------------------------------------------------ */
-export function FilaProducto({ p }) {
-  return (
-    <article className="flex gap-3 border-b border-linea bg-white px-4 py-3">
-      <Miniatura src={p.imagen_url} alt={p.nombre} />
+function useArrastreHorizontal(ref) {
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
 
-      <div className="min-w-0 flex-1">
-        <h3 className="font-cond text-[1.0625rem] font-600 leading-snug">{p.nombre}</h3>
-        {p.descripcion && (
-          <p className="mt-0.5 text-sm leading-snug text-gris line-clamp-2">{p.descripcion}</p>
-        )}
-        {p.unidades_pack && (
-          <p className="mt-1 text-2xs text-gris cifra">Pack x {p.unidades_pack}</p>
-        )}
+    let arrastrando = false
+    let inicioX = 0
+    let inicioScroll = 0
+    let movido = false
+
+    function abajo(e) {
+      arrastrando = true
+      movido = false
+      inicioX = e.clientX
+      inicioScroll = el.scrollLeft
+    }
+    function mover(e) {
+      if (!arrastrando) return
+      const delta = e.clientX - inicioX
+      if (Math.abs(delta) > 3) movido = true
+      el.scrollLeft = inicioScroll - delta
+    }
+    function soltar() { arrastrando = false }
+    // Evita que el click dispare la selección del chip cuando en realidad se arrastró
+    function click(e) { if (movido) { e.stopPropagation(); e.preventDefault() } }
+
+    el.addEventListener('pointerdown', abajo)
+    window.addEventListener('pointermove', mover)
+    window.addEventListener('pointerup', soltar)
+    el.addEventListener('click', click, true)
+
+    return () => {
+      el.removeEventListener('pointerdown', abajo)
+      window.removeEventListener('pointermove', mover)
+      window.removeEventListener('pointerup', soltar)
+      el.removeEventListener('click', click, true)
+    }
+  }, [ref])
+}
+
+/* ------------------------------------------------------------------ */
+/* Tarjeta de producto                                                 */
+/* Estructura fija (foto / nombre / precio siempre en el mismo lugar)  */
+/* para que las tarjetas queden alineadas en la grilla aunque a algún  */
+/* producto le falte descripción, pack o precio.                      */
+/* ------------------------------------------------------------------ */
+export function TarjetaProducto({ p }) {
+  return (
+    <article className="flex h-full flex-col overflow-hidden rounded-lg border border-linea bg-white">
+      <div className="aspect-square w-full bg-papel">
+        <Miniatura src={p.imagen_url} alt={p.nombre} grande />
       </div>
 
-      <div className="shrink-0 text-right">
-        <p className={[
-          'cifra font-600 leading-none',
-          sinPrecio(p.precio_unit) ? 'text-sm text-gris' : 'text-[1.0625rem] text-tinta'
-        ].join(' ')}>
-          {precio(p.precio_unit)}
+      <div className="flex flex-1 flex-col gap-1 px-3 pb-3 pt-2.5">
+        <h3 className="font-cond text-[0.9375rem] font-600 leading-snug line-clamp-2 min-h-[2.375rem]">
+          {p.nombre}
+        </h3>
+
+        <p className="text-2xs text-gris cifra">
+          {p.unidades_pack ? `Pack x ${p.unidades_pack}` : ' '}
         </p>
-        {!sinPrecio(p.precio_pack) && (
-          <p className="mt-1.5 cifra text-2xs text-gris">
-            pack {precio(p.precio_pack)}
+
+        <div className="mt-auto pt-1.5">
+          <p className={[
+            'cifra font-600 leading-none',
+            sinPrecio(p.precio_unit) ? 'text-sm text-gris' : 'text-base text-tinta'
+          ].join(' ')}>
+            {precio(p.precio_unit)}
           </p>
-        )}
+          <p className="mt-1 cifra text-2xs text-gris">
+            {!sinPrecio(p.precio_pack) ? `pack ${precio(p.precio_pack)}` : ' '}
+          </p>
+        </div>
       </div>
     </article>
   )
 }
 
-function Miniatura({ src, alt }) {
+function Miniatura({ src, alt, grande }) {
+  const tamano = grande ? 'h-full w-full' : 'h-14 w-14 shrink-0 rounded-md border border-linea'
+
   if (!src) {
     return (
-      <div className="grid h-14 w-14 shrink-0 place-items-center rounded-md bg-papel border border-linea"
-           aria-hidden="true">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6B7069" strokeWidth="1.5">
+      <div className={`grid place-items-center bg-papel ${tamano}`} aria-hidden="true">
+        <svg width={grande ? 32 : 20} height={grande ? 32 : 20} viewBox="0 0 24 24" fill="none" stroke="#6B7069" strokeWidth="1.5">
           <path d="M8 2h8l1 4v14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V6z" /><path d="M7 9h10" />
         </svg>
       </div>
@@ -153,7 +234,7 @@ function Miniatura({ src, alt }) {
   }
   return (
     <img src={src} alt={alt} loading="lazy" decoding="async"
-         className="h-14 w-14 shrink-0 rounded-md border border-linea object-cover bg-white" />
+         className={`object-cover bg-white ${tamano}`} />
   )
 }
 

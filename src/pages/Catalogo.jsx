@@ -1,27 +1,50 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useCatalogo } from '../hooks/useCatalogo'
 import { normalizar } from '../lib/formato'
-import { hayBackend } from '../lib/supabase'
+import { supabase, hayBackend } from '../lib/supabase'
 import {
-  Encabezado, BarraBusqueda, FilaProducto, TituloGrupo, BotonWhatsApp
+  Encabezado, BarraBusqueda, TarjetaProducto, TituloGrupo, BotonWhatsApp
 } from '../components/Catalogo.parts'
 
 export default function Catalogo() {
   const { categorias, productos, cargando, error } = useCatalogo()
   const [texto, setTexto] = useState('')
   const [activa, setActiva] = useState(null)
+  const [subActiva, setSubActiva] = useState(null)
+  const [sesion, setSesion] = useState(null)
+
+  // Sesión del dueño: para poder mostrar "Cerrar sesión" también desde el catálogo
+  useEffect(() => {
+    if (!hayBackend) return
+    supabase.auth.getSession().then(({ data }) => setSesion(data.session))
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setSesion(s))
+    return () => sub.subscription.unsubscribe()
+  }, [])
+
+  // Al cambiar de categoría, la sub-línea elegida (ej: "Coca-Cola" dentro de Gaseosas) ya no aplica
+  useEffect(() => { setSubActiva(null) }, [activa])
+
+  const subcategorias = useMemo(() => {
+    if (activa === null) return []
+    const set = new Set()
+    for (const p of productos) {
+      if (p.categoria_id === activa && p.subcategoria) set.add(p.subcategoria)
+    }
+    return [...set].sort((a, b) => a.localeCompare(b))
+  }, [productos, activa])
 
   const filtrados = useMemo(() => {
     const q = normalizar(texto).trim()
     return productos.filter((p) => {
       if (activa !== null && p.categoria_id !== activa) return false
+      if (subActiva && p.subcategoria !== subActiva) return false
       if (!q) return true
       // Busca por palabras sueltas: "coca 500" encuentra "COCA COLA 500"
       const heno = normalizar(`${p.nombre} ${p.subcategoria ?? ''} ${p.descripcion ?? ''}`)
       return q.split(/\s+/).every((palabra) => heno.includes(palabra))
     })
-  }, [productos, texto, activa])
+  }, [productos, texto, activa, subActiva])
 
   // Agrupar por subcategoría, respetando el orden en que vienen
   const grupos = useMemo(() => {
@@ -36,12 +59,14 @@ export default function Catalogo() {
 
   return (
     <div className="min-h-dvh pb-24">
-      <Encabezado />
+      <Encabezado sesion={sesion} onSalir={() => supabase.auth.signOut()} />
 
       <BarraBusqueda
         texto={texto} setTexto={setTexto}
         categorias={categorias}
         activa={activa} setActiva={setActiva}
+        subcategorias={subcategorias}
+        subActiva={subActiva} setSubActiva={setSubActiva}
         total={filtrados.length}
       />
 
@@ -64,12 +89,16 @@ export default function Catalogo() {
         {grupos.map(([titulo, items]) => (
           <section key={titulo}>
             {titulo !== 'Otros' && <TituloGrupo>{titulo}</TituloGrupo>}
-            {items.map((p) => <FilaProducto key={p.id} p={p} />)}
+            <div className="grid grid-cols-2 gap-3 px-4 py-3 sm:grid-cols-3">
+              {items.map((p) => <TarjetaProducto key={p.id} p={p} />)}
+            </div>
           </section>
         ))}
       </main>
 
-      <BotonWhatsApp />
+      {/* Botón de WhatsApp: escondido por pedido del dueño, se puede reactivar
+          descomentando esta línea si en algún momento vuelve a necesitarse. */}
+      {/* <BotonWhatsApp /> */}
 
       <footer className="mx-auto max-w-3xl px-4 py-8 text-center text-2xs text-gris">
         {!hayBackend && (
@@ -78,7 +107,9 @@ export default function Catalogo() {
           </p>
         )}
         <p>Los precios pueden cambiar sin aviso. Consultá disponibilidad antes de cerrar el pedido.</p>
-        <Link to="/ingresar" className="mt-3 inline-block underline">Administrar</Link>
+        {sesion
+          ? <Link to="/panel" className="mt-3 inline-block underline">Panel</Link>
+          : <Link to="/ingresar" className="mt-3 inline-block underline">Administrar</Link>}
       </footer>
     </div>
   )
