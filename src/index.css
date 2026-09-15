@@ -1,0 +1,26 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    @apply bg-papel text-tinta font-sans antialiased;
+    /* Evita el zoom raro de iOS al tocar el buscador */
+    text-rendering: optimizeLegibility;
+  }
+  /* Los precios siempre en cifras tabulares: las columnas quedan alineadas */
+  .cifra { font-variant-numeric: tabular-nums; font-feature-settings: 'tnum' 1; }
+
+  :focus-visible { outline: 2px solid #1F6F4A; outline-offset: 2px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+  }
+}
+
+@layer utilities {
+  .sin-barra::-webkit-scrollbar { display: none; }
+  .sin-barra { -ms-overflow-style: none; scrollbar-width: none; }
+  .safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
+}
