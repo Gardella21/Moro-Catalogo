@@ -84,7 +84,13 @@ function aEntero(s) {
 // "COCA COLA SIN AZUCAR 1.250" → "Coca Cola Sin Azúcar 1.250"
 // Deja intactas las siglas cortas y los números.
 function capitalizar(s) {
-  return limpiar(s).toLowerCase().replace(/\b[a-záéíóúñ]/g, (m) => m.toUpperCase())
+  // \b no reconoce letras con tilde/ñ como "de palabra", así que en nombres
+  // como "MAÑANITA" terminaba capitalizando también la letra de al lado
+  // ("MaÑAnita"). Se arma la separación a mano en vez de usar \b.
+  return limpiar(s).toLowerCase().replace(
+    /(^|[^a-záéíóúñ])([a-záéíóúñ])/g,
+    (_, sep, letra) => sep + letra.toUpperCase()
+  )
 }
 
 const escapar = (s) => (s === null ? 'NULL' : `'${String(s).replace(/'/g, "''")}'`)
