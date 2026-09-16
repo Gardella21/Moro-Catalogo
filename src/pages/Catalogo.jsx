@@ -76,7 +76,7 @@ export default function Catalogo() {
         {error && (
           <Aviso titulo="No se pudo cargar la lista">
             Revisá la conexión y volvé a entrar. Si sigue igual, avisale a quien administra la app.
-            <span className="mt-2 block text-2xs text-gris">{error}</span>
+            <span className="mt-2 block font-sans text-meta text-ink-muted">{error}</span>
           </Aviso>
         )}
 
@@ -100,7 +100,7 @@ export default function Catalogo() {
           descomentando esta línea si en algún momento vuelve a necesitarse. */}
       {/* <BotonWhatsApp /> */}
 
-      <footer className="mx-auto max-w-3xl px-4 py-8 text-center text-2xs text-gris">
+      <footer className="mx-auto max-w-3xl px-4 py-8 text-center font-sans text-meta text-ink-muted">
         {!hayBackend && (
           <p className="mb-3 rounded-md bg-ambar/10 px-3 py-2 text-ambar">
             Mostrando datos de ejemplo. Configurá <code>.env</code> para conectar la base real.
@@ -108,8 +108,8 @@ export default function Catalogo() {
         )}
         <p>Los precios pueden cambiar sin aviso. Consultá disponibilidad antes de cerrar el pedido.</p>
         {sesion
-          ? <Link to="/panel" className="mt-3 inline-block underline">Panel</Link>
-          : <Link to="/ingresar" className="mt-3 inline-block underline">Administrar</Link>}
+          ? <Link to="/panel" className="mt-3 inline-block font-600 text-navy underline">Panel</Link>
+          : <Link to="/ingresar" className="mt-3 inline-block font-600 text-navy underline">Administrar</Link>}
       </footer>
     </div>
   )
@@ -117,15 +117,15 @@ export default function Catalogo() {
 
 function Cargando() {
   return (
-    <div className="divide-y divide-linea">
+    <div className="divide-y divide-line">
       {Array.from({ length: 8 }).map((_, i) => (
-        <div key={i} className="flex gap-3 bg-white px-4 py-3">
-          <div className="h-14 w-14 shrink-0 rounded-md bg-linea" />
+        <div key={i} className="flex gap-3 bg-surface-raised px-4 py-3">
+          <div className="h-14 w-14 shrink-0 rounded-md bg-line" />
           <div className="flex-1 space-y-2 pt-1">
-            <div className="h-3.5 w-3/5 rounded bg-linea" />
-            <div className="h-3 w-1/3 rounded bg-linea/70" />
+            <div className="h-3.5 w-3/5 rounded bg-line" />
+            <div className="h-3 w-1/3 rounded bg-line/70" />
           </div>
-          <div className="h-3.5 w-16 rounded bg-linea" />
+          <div className="h-3.5 w-16 rounded bg-line" />
         </div>
       ))}
     </div>
@@ -135,8 +135,8 @@ function Cargando() {
 function Aviso({ titulo, children }) {
   return (
     <div className="px-4 py-14 text-center">
-      <p className="font-cond text-xl font-600">{titulo}</p>
-      <p className="mx-auto mt-2 max-w-xs text-sm leading-relaxed text-gris">{children}</p>
+      <p className="font-serif text-xl font-700 text-ink">{titulo}</p>
+      <p className="mx-auto mt-2 max-w-xs font-sans text-sm leading-relaxed text-ink-muted">{children}</p>
     </div>
   )
 }

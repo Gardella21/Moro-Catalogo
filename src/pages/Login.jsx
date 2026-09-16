@@ -37,11 +37,11 @@ export default function Login() {
   if (!hayBackend) {
     return (
       <Marco>
-        <p className="text-sm leading-relaxed text-gris">
+        <p className="font-sans text-sm leading-relaxed text-ink-muted">
           Falta conectar la base de datos. Copiá <code>.env.example</code> a <code>.env</code>,
           poné la URL y la clave del proyecto de Supabase, y volvé a levantar el servidor.
         </p>
-        <Link to="/" className="mt-6 inline-block text-sm underline">Volver al catálogo</Link>
+        <Link to="/" className="mt-6 inline-block font-sans text-sm font-600 text-navy underline">Volver al catálogo</Link>
       </Marco>
     )
   }
@@ -50,48 +50,50 @@ export default function Login() {
     <Marco>
       <form onSubmit={entrar} className="space-y-4">
         <div>
-          <label htmlFor="email" className="block text-sm font-500">Usuario</label>
+          <label htmlFor="email" className="block font-sans text-sm font-500">Usuario</label>
           <input
             id="email" type="email" autoComplete="username" required
             value={email} onChange={(e) => setEmail(e.target.value)}
-            className="mt-1.5 w-full rounded-lg border border-linea bg-white px-3 py-3 text-base
-                       focus:border-verde focus:outline-none"
+            className="mt-1.5 w-full rounded-lg border border-line-strong bg-surface-raised px-3 py-3 font-sans text-base
+                       focus:border-navy focus:outline-none"
           />
         </div>
 
         <div>
-          <label htmlFor="clave" className="block text-sm font-500">Contraseña</label>
+          <label htmlFor="clave" className="block font-sans text-sm font-500">Contraseña</label>
           <input
             id="clave" type="password" autoComplete="current-password" required
             value={clave} onChange={(e) => setClave(e.target.value)}
-            className="mt-1.5 w-full rounded-lg border border-linea bg-white px-3 py-3 text-base
-                       focus:border-verde focus:outline-none"
+            className="mt-1.5 w-full rounded-lg border border-line-strong bg-surface-raised px-3 py-3 font-sans text-base
+                       focus:border-navy focus:outline-none"
           />
         </div>
 
         {error && (
-          <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-800">{error}</p>
+          <p role="alert" className="rounded-md bg-red-50 px-3 py-2 font-sans text-sm text-red-800">{error}</p>
         )}
 
         <button
           type="submit" disabled={enviando}
-          className="w-full rounded-lg bg-verdeOsc py-3.5 text-base font-600 text-white
-                     disabled:opacity-60"
+          className="w-full rounded-lg bg-navy py-3.5 font-sans text-base font-600 text-on-navy
+                     hover:bg-navy-strong disabled:opacity-60"
         >
           {enviando ? 'Entrando…' : 'Entrar'}
         </button>
       </form>
 
-      <Link to="/" className="mt-6 inline-block text-sm underline">Volver al catálogo</Link>
+      <Link to="/" className="mt-6 inline-block font-sans text-sm font-600 text-navy underline">Volver al catálogo</Link>
     </Marco>
   )
 }
 
 function Marco({ children }) {
   return (
-    <div className="min-h-dvh bg-papel">
+    <div className="min-h-dvh bg-surface">
       <div className="mx-auto max-w-sm px-5 pt-16">
-        <h1 className="mb-8 font-cond text-2xl font-700">Panel de administración</h1>
+        <h1 className="mb-8 font-serif text-[22px] font-700 leading-[28px] tracking-[0.01em] text-ink desde720:text-[30px] desde720:leading-[36px]">
+          Panel de administración
+        </h1>
         {children}
       </div>
     </div>
