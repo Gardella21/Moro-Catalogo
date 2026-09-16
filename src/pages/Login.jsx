@@ -91,10 +91,7 @@ function Marco({ children }) {
   return (
     <div className="min-h-dvh bg-papel">
       <div className="mx-auto max-w-sm px-5 pt-16">
-        <h1 className="font-cond text-2xl font-700">Panel de administración</h1>
-        <p className="mb-8 mt-1 text-sm text-gris">
-          Solo para el dueño y el encargado.
-        </p>
+        <h1 className="mb-8 font-cond text-2xl font-700">Panel de administración</h1>
         {children}
       </div>
     </div>

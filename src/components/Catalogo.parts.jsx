@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, useState } from 'react'
 import { precio, sinPrecio } from '../lib/formato'
 
 const WPP = import.meta.env.VITE_WHATSAPP || '5492346000000'
@@ -15,10 +15,9 @@ export function Encabezado({ actualizado, sesion, onSalir }) {
           <p className="font-cond text-[1.75rem] leading-none font-700 tracking-tight">
             {NEGOCIO}
           </p>
-          <p className="mt-1.5 text-sm text-white/70">
-            Lista de precios mayorista
-            {actualizado && <> · actualizada el {actualizado}</>}
-          </p>
+          {actualizado && (
+            <p className="mt-1.5 text-sm text-white/70">actualizada el {actualizado}</p>
+          )}
         </div>
 
         {sesion && (
@@ -45,6 +44,8 @@ export function BarraBusqueda({
   const cintaSub = useRef(null)
   useArrastreHorizontal(cinta)
   useArrastreHorizontal(cintaSub)
+  const bordes = useBordesScroll(cinta, [categorias.length])
+  const bordesSub = useBordesScroll(cintaSub, [subcategorias.length])
 
   // Al cambiar de categoría, traer el chip elegido a la vista
   useEffect(() => {
@@ -85,27 +86,35 @@ export function BarraBusqueda({
         </div>
       </div>
 
-      <div ref={cinta} className="sin-barra cursor-grab overflow-x-auto touch-pan-x active:cursor-grabbing">
-        <div className="mx-auto flex max-w-3xl gap-1.5 px-4 pb-3">
-          <Chip activa={activa === null} onClick={() => setActiva(null)}>Todo</Chip>
-          {categorias.map((c) => (
-            <Chip key={c.id} activa={activa === c.id} onClick={() => setActiva(c.id)}>
-              {c.nombre}
-            </Chip>
-          ))}
-        </div>
-      </div>
-
-      {subcategorias.length > 1 && (
-        <div ref={cintaSub} className="sin-barra cursor-grab overflow-x-auto touch-pan-x active:cursor-grabbing">
+      <div className="relative">
+        <div ref={cinta} className="sin-barra cursor-grab overflow-x-auto touch-pan-x active:cursor-grabbing">
           <div className="mx-auto flex max-w-3xl gap-1.5 px-4 pb-3">
-            <Chip chica activa={subActiva === null} onClick={() => setSubActiva(null)}>Todas las líneas</Chip>
-            {subcategorias.map((s) => (
-              <Chip chica key={s} activa={subActiva === s} onClick={() => setSubActiva(s)}>
-                {s}
+            <Chip activa={activa === null} onClick={() => setActiva(null)}>Todo</Chip>
+            {categorias.map((c) => (
+              <Chip key={c.id} activa={activa === c.id} onClick={() => setActiva(c.id)}>
+                {c.nombre}
               </Chip>
             ))}
           </div>
+        </div>
+        {bordes.izq && <div className="pointer-events-none absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-papel/95 to-transparent" />}
+        {bordes.der && <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-papel/95 to-transparent" />}
+      </div>
+
+      {subcategorias.length > 1 && (
+        <div className="relative">
+          <div ref={cintaSub} className="sin-barra cursor-grab overflow-x-auto touch-pan-x active:cursor-grabbing">
+            <div className="mx-auto flex max-w-3xl gap-1.5 px-4 pb-3">
+              <Chip chica activa={subActiva === null} onClick={() => setSubActiva(null)}>Todas las líneas</Chip>
+              {subcategorias.map((s) => (
+                <Chip chica key={s} activa={subActiva === s} onClick={() => setSubActiva(s)}>
+                  {s}
+                </Chip>
+              ))}
+            </div>
+          </div>
+          {bordesSub.izq && <div className="pointer-events-none absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-papel/95 to-transparent" />}
+          {bordesSub.der && <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-papel/95 to-transparent" />}
         </div>
       )}
 
@@ -134,6 +143,38 @@ function Chip({ activa, onClick, children, chica }) {
       {children}
     </button>
   )
+}
+
+/* ------------------------------------------------------------------ */
+/* Detecta si una cinta de chips tiene más contenido a izquierda/      */
+/* derecha, para mostrar un desvanecido que avise que se puede         */
+/* seguir scrolleando (si no, no queda claro que el nav sigue).        */
+/* ------------------------------------------------------------------ */
+function useBordesScroll(ref, deps = []) {
+  const [estado, setEstado] = useState({ izq: false, der: false })
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+
+    function calcular() {
+      setEstado({
+        izq: el.scrollLeft > 4,
+        der: el.scrollLeft < el.scrollWidth - el.clientWidth - 4
+      })
+    }
+
+    calcular()
+    el.addEventListener('scroll', calcular, { passive: true })
+    window.addEventListener('resize', calcular)
+    return () => {
+      el.removeEventListener('scroll', calcular)
+      window.removeEventListener('resize', calcular)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, deps)
+
+  return estado
 }
 
 /* ------------------------------------------------------------------ */

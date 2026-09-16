@@ -14,6 +14,7 @@ export default function Admin() {
   const [categorias, setCategorias] = useState([])
   const [productos, setProductos] = useState([])
   const [busqueda, setBusqueda] = useState('')
+  const [filtroCategoria, setFiltroCategoria] = useState(null)   // null = todas las secciones
   const [editando, setEditando] = useState(null)   // objeto producto o null
   const [aviso, setAviso] = useState(null)
 
@@ -24,6 +25,7 @@ export default function Admin() {
   const [ajusteTexto, setAjusteTexto] = useState('')
   const [ajustePorcentaje, setAjustePorcentaje] = useState('')
   const [ajusteAplicando, setAjusteAplicando] = useState(false)
+  const [ajusteSeleccion, setAjusteSeleccion] = useState(new Set())   // ids elegidos, solo modo "nombre"
 
   /* -------------------------------------------------- sesión */
   useEffect(() => {
@@ -50,9 +52,12 @@ export default function Admin() {
 
   const visibles = useMemo(() => {
     const q = normalizar(busqueda).trim()
-    if (!q) return productos.slice(0, 60)
-    return productos.filter((p) => normalizar(p.nombre).includes(q)).slice(0, 60)
-  }, [productos, busqueda])
+    const base = filtroCategoria === null
+      ? productos
+      : productos.filter((p) => p.categoria_id === filtroCategoria)
+    if (!q) return base.slice(0, 60)
+    return base.filter((p) => normalizar(p.nombre).includes(q)).slice(0, 60)
+  }, [productos, busqueda, filtroCategoria])
 
   /* -------------------------------------------------- acciones */
   async function guardar(form) {
@@ -97,13 +102,32 @@ export default function Admin() {
     return productos.filter((p) => normalizar(p.nombre).includes(q))
   }, [productos, ajusteModo, ajusteCategoria, ajusteTexto])
 
+  // En modo "nombre" puede haber muchas coincidencias (ej: 21 "coca cola") y
+  // el dueño quiere elegir puntualmente a cuáles les toca el ajuste. Al
+  // cambiar la búsqueda, arrancamos con todas tildadas.
+  useEffect(() => {
+    if (ajusteModo === 'nombre') setAjusteSeleccion(new Set(coincidenciasAjuste.map((p) => p.id)))
+  }, [ajusteTexto, ajusteModo])
+
+  function alternarSeleccion(id) {
+    setAjusteSeleccion((prev) => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  const objetivoAjuste = ajusteModo === 'nombre'
+    ? coincidenciasAjuste.filter((p) => ajusteSeleccion.has(p.id))
+    : coincidenciasAjuste
+
   async function aplicarAjuste() {
     const pct = Number(ajustePorcentaje)
     if (!pct || Number.isNaN(pct)) return
-    if (coincidenciasAjuste.length === 0) return
+    if (objetivoAjuste.length === 0) return
     const signo = pct > 0 ? '+' : ''
     if (!confirm(
-      `Vas a aplicar ${signo}${pct}% a ${coincidenciasAjuste.length} producto(s). No se puede deshacer. ¿Continuar?`
+      `Vas a aplicar ${signo}${pct}% a ${objetivoAjuste.length} producto(s). No se puede deshacer. ¿Continuar?`
     )) return
 
     setAjusteAplicando(true)
@@ -111,7 +135,7 @@ export default function Admin() {
     const ajustar = (v) => (v === null || v === undefined ? v : Math.round(Number(v) * factor))
 
     const resultados = await Promise.all(
-      coincidenciasAjuste.map((p) =>
+      objetivoAjuste.map((p) =>
         supabase.from('productos').update({
           precio_unit: ajustar(p.precio_unit),
           precio_pack: ajustar(p.precio_pack)
@@ -123,10 +147,11 @@ export default function Admin() {
     const conError = resultados.find((r) => r.error)
     if (conError) { setAviso({ tipo: 'error', texto: conError.error.message }); return }
 
-    setAviso({ tipo: 'ok', texto: `Precios actualizados en ${coincidenciasAjuste.length} producto(s)` })
+    setAviso({ tipo: 'ok', texto: `Precios actualizados en ${objetivoAjuste.length} producto(s)` })
     setAjusteAbierto(false)
     setAjusteTexto('')
     setAjustePorcentaje('')
+    setAjusteSeleccion(new Set())
     recargar()
   }
 
@@ -147,6 +172,19 @@ export default function Admin() {
           </div>
         </div>
       </header>
+
+      <div className="sin-barra overflow-x-auto border-b border-linea bg-white">
+        <div className="mx-auto flex max-w-3xl gap-1.5 px-4 py-2.5">
+          <NavChip activa={filtroCategoria === null} onClick={() => setFiltroCategoria(null)}>
+            Todas
+          </NavChip>
+          {categorias.map((c) => (
+            <NavChip key={c.id} activa={filtroCategoria === c.id} onClick={() => setFiltroCategoria(c.id)}>
+              {c.nombre}
+            </NavChip>
+          ))}
+        </div>
+      </div>
 
       <div className="mx-auto max-w-3xl px-4">
         {aviso && (
@@ -221,6 +259,35 @@ export default function Admin() {
                 />
               )}
 
+              {ajusteModo === 'nombre' && coincidenciasAjuste.length > 0 && (
+                <div className="overflow-hidden rounded-lg border border-linea">
+                  <div className="flex items-center justify-between border-b border-linea bg-papel px-3 py-2">
+                    <span className="text-2xs text-gris">
+                      {coincidenciasAjuste.length} coincidencia(s) — elegí cuáles ajustar
+                    </span>
+                    <button
+                      onClick={() => setAjusteSeleccion(new Set(coincidenciasAjuste.map((p) => p.id)))}
+                      className="text-2xs text-verde underline"
+                    >
+                      Elegir todas
+                    </button>
+                  </div>
+                  <div className="max-h-48 divide-y divide-linea overflow-y-auto bg-white">
+                    {coincidenciasAjuste.map((p) => (
+                      <label key={p.id} className="flex items-center gap-2.5 px-3 py-2 text-sm">
+                        <input
+                          type="checkbox" checked={ajusteSeleccion.has(p.id)}
+                          onChange={() => alternarSeleccion(p.id)}
+                          className="h-4 w-4 shrink-0 accent-verde"
+                        />
+                        <span className="min-w-0 flex-1 truncate">{p.nombre}</span>
+                        <span className="cifra shrink-0 text-2xs text-gris">{precio(p.precio_unit)}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <label className="block">
                 <span className="text-sm font-500">Porcentaje</span>
                 <input
@@ -232,12 +299,12 @@ export default function Admin() {
               </label>
 
               <p className="text-2xs text-gris cifra">
-                {coincidenciasAjuste.length} producto(s) van a cambiar de precio
+                {objetivoAjuste.length} producto(s) van a cambiar de precio
               </p>
 
               <button
                 onClick={aplicarAjuste}
-                disabled={!ajustePorcentaje || coincidenciasAjuste.length === 0 || ajusteAplicando}
+                disabled={!ajustePorcentaje || objetivoAjuste.length === 0 || ajusteAplicando}
                 className="w-full rounded-lg bg-verdeOsc py-3 text-sm font-600 text-white disabled:opacity-50"
               >
                 {ajusteAplicando ? 'Aplicando…' : 'Aplicar a los precios'}
@@ -379,6 +446,20 @@ function Formulario({ inicial, categorias, onCancelar, onGuardar }) {
         </div>
       </div>
     </div>
+  )
+}
+
+function NavChip({ activa, onClick, children }) {
+  return (
+    <button
+      onClick={onClick}
+      className={[
+        'shrink-0 whitespace-nowrap rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors',
+        activa ? 'border-verde bg-verde text-white' : 'border-linea text-tinta hover:border-verde'
+      ].join(' ')}
+    >
+      {children}
+    </button>
   )
 }
 

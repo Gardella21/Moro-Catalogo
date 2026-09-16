@@ -13,42 +13,53 @@ ahí está el razonamiento completo, esto es solo el resumen de la sesión anter
 - Repo: https://github.com/Gardella21/Moro-Catalogo (público — nunca commitear
   `.env`, ya está en `.gitignore`).
 
-## Qué se hizo en la sesión anterior
+## Qué se hizo en la sesión anterior (la de esta entrada)
 
-1. El proyecto tenía un `.git` vacío inicializado por error en la carpeta home
-   del usuario (`C:\Users\...`), mezclando todo el disco. Se ignoró y se inicializó
-   un repo nuevo *dentro* de esta carpeta del proyecto. Se borró además una
-   carpeta basura `{src\{...}}` que había quedado de un `mkdir` con llaves mal
-   interpretado en una shell de Windows.
-2. Se agregó `vercel.json` con rewrite a `/index.html` (Vercel no lee
-   `public/_redirects`, eso es solo de Netlify) y se limpiaron las menciones a
-   Netlify en README/DECISIONES.
-3. Se hizo push del commit inicial a GitHub (rama `main`).
-4. `supabase/schema.sql` tiraba `ERROR: 42P17: functions in index expression
-   must be marked IMMUTABLE` al correrlo, por un índice GIN con `unaccent()`
-   (función `STABLE`, no permitida en índices). Se sacó ese índice: la búsqueda
-   del catálogo es 100% client-side (`src/lib/formato.js` → `normalizar()`,
-   sobre el catálogo completo que trae `useCatalogo.js`), así que el índice no
-   se usaba para nada. Fix commiteado y pusheado.
-5. Se creó el proyecto de Supabase, se corrió el schema ya arreglado, se creó
-   el bucket `productos` y el usuario del dueño en Authentication → Users.
-6. Se armó un `.env` local (gitignorado, nunca pusheado) con la URL y la
-   *publishable key* (formato nuevo de Supabase, reemplaza al anon key JWT
-   viejo; `@supabase/supabase-js@2.116.0` ya lo soporta) del proyecto real.
-   `VITE_WHATSAPP` y `VITE_NEGOCIO` quedaron con valores placeholder —
-   falta poner el teléfono real de la distribuidora.
-7. Login verificado end-to-end en `npm run dev`: entra bien y redirige a
-   `/panel`.
+1. Se conectó el repo de GitHub a Vercel (import del proyecto) y se instalaron
+   ahí las integraciones de GitHub y Supabase.
+2. La integración de Supabase en Vercel creó sus propias env vars
+   (`SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_*`, `POSTGRES_*`, pensadas para
+   Next.js) — el código de esta app no las lee, así que quedan sin uso, no
+   pasa nada con dejarlas. Las que hacen falta (`VITE_SUPABASE_URL`,
+   `VITE_SUPABASE_ANON_KEY`) hubo que cargarlas a mano, y de tipo **Config**
+   (no "Secret": Secret es write-only y Vite necesita poder inyectar el valor
+   en build time para exponerlo al bundle del cliente).
+3. `VITE_WHATSAPP` y `VITE_NEGOCIO` quedaron pendientes de cargar en Vercel
+   (el dueño las va a completar él; el código tiene fallback así que el sitio
+   no se rompe sin ellas, solo muestra el placeholder).
+4. Redeploy hecho, sitio funcionando en producción con los ~841 productos
+   reales cargados en Supabase.
+5. Se implementaron los 7 cambios que el dueño dejó anotados en `Cambios.md`
+   tras probar la app (commit `098b358`, pusheado a `main`):
+   - Botón "Cerrar sesión" en el header del catálogo (antes solo estaba en `/panel`).
+   - Productos como tarjetas en grilla (`TarjetaProducto` en
+     `src/components/Catalogo.parts.jsx`, antes `FilaProducto`), con
+     estructura fija para que no se desalineen si falta algún dato.
+   - Sección "Ajustar precios por lote" en `/panel` (`src/pages/Admin.jsx`):
+     sube/baja precio unitario y de pack por porcentaje, eligiendo por
+     sección o por texto en el nombre.
+   - Chips de sub-línea (`subcategoria`) al elegir una sección, para filtrar
+     dentro de ella.
+   - `<BotonWhatsApp />` comentado (no borrado) en `src/pages/Catalogo.jsx`.
+   - Scroll horizontal de los chips de categoría: se agregó arrastre con
+     mouse/dedo (`useArrastreHorizontal` en Catalogo.parts.jsx) porque el
+     scroll táctil nativo solo no respondía bien en un simulador de celular.
 
 ## Pendiente
 
-- Conectar el repo de GitHub en Vercel y cargar ahí las mismas 4 variables de
-  entorno (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_WHATSAPP` con
-  el número real, `VITE_NEGOCIO`).
-- Cargar los ~1.500 productos reales (ver sección "Cargar los 1.500 productos"
-  en el README y los 3 problemas del Excel en DECISIONES.md punto 3 — precios
-  en `$0.00`, dos precios por producto, typos en nombres).
+- **Nuevo pedido del dueño en `Cambios.md`** (sin implementar todavía): en el
+  panel, dentro de "Ajustar precios por lote" → modo "Por nombre", poder
+  buscar y **elegir puntualmente** cuáles de los resultados ajustar (hoy el
+  ajuste aplica a *todas* las coincidencias del texto — ej. buscar "coca cola"
+  trae 21 productos y el dueño quiere tocar el precio de uno solo). Implica
+  agregar selección con checkboxes sobre la lista de coincidencias en
+  `Admin.jsx` antes de aplicar el ajuste.
+- Cargar `VITE_WHATSAPP` (número real) y `VITE_NEGOCIO` en Vercel (tipo
+  Config, no Secret) + redeploy.
 - Fotos: por ahora ningún producto tiene imagen (ver DECISIONES.md punto 3d).
+- Revisar en vivo (con la sesión real del dueño) que el panel de ajuste de
+  precios por lote funcione como se espera — no se probó logueado, solo se
+  verificó que compila y que la lógica de sesión es la misma ya probada antes.
 
 ## Notas de entorno (Windows)
 

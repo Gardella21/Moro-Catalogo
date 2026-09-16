@@ -13,8 +13,8 @@ export default {
         linea: '#E3E5E0'
       },
       fontFamily: {
-        sans: ['Archivo', 'system-ui', 'sans-serif'],
-        cond: ['"Archivo Narrow"', 'Archivo', 'system-ui', 'sans-serif']
+        sans: ['"Public Sans"', 'system-ui', 'sans-serif'],
+        cond: ['"Roboto Condensed"', '"Public Sans"', 'system-ui', 'sans-serif']
       },
       fontSize: {
         '2xs': ['0.6875rem', { lineHeight: '1rem' }]
