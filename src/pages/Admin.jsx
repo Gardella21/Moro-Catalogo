@@ -162,9 +162,12 @@ export default function Admin() {
     <div className="min-h-dvh bg-surface pb-24">
       <header className="sticky top-0 z-20 border-b-[3px] border-brass bg-masthead text-on-masthead">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3">
-          <div>
-            <h1 className="font-serif text-[22px] font-700 leading-[28px] tracking-[0.01em]">Panel</h1>
-            <p className="cifra font-sans text-meta text-masthead-muted">{productos.length} productos cargados</p>
+          <div className="flex items-center gap-3">
+            <img src="/logo-moro.png" alt="" className="h-10 w-10 shrink-0 rounded-full" />
+            <div>
+              <h1 className="font-serif text-[22px] font-700 leading-[28px] tracking-[0.01em]">Panel</h1>
+              <p className="cifra font-sans text-meta text-masthead-muted">{productos.length} productos cargados</p>
+            </div>
           </div>
           <div className="flex items-center gap-3 font-sans text-sm font-600">
             <Link to="/" className="underline">Ver catálogo</Link>
