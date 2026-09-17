@@ -1,4 +1,4 @@
-# Moro Distribuidora — catálogo de precios
+# Valfer Bebidas Chivilcoy SA — catálogo de precios
 
 Catálogo mayorista para celular. Sin carrito: se ve el producto, la foto y el
 precio, y el pedido sigue yendo por WhatsApp. El dueño edita todo desde un panel
@@ -31,7 +31,7 @@ No necesitás Supabase todavía para ver cómo queda.
 
 1. Creá un proyecto en [supabase.com](https://supabase.com) (plan gratis).
 2. SQL Editor → pegá todo `supabase/schema.sql` → Run. Crea las tablas, las
-   políticas de permisos y las 11 categorías.
+   políticas de permisos y las 12 categorías.
 3. Storage → verificá que exista el bucket `productos` y que esté en público.
 4. Authentication → Users → **Add user**. Creá el usuario del dueño a mano, con
    el mail y la contraseña que le vayas a dar. No habilites el registro abierto:

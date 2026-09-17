@@ -1,11 +1,11 @@
 ---
 name: imagenes
-description: Maneja todo lo relacionado a fotos de producto del catálogo Moro Distribuidora — cargar fotos al bucket de Supabase y linkearlas al producto correcto, sea de a una o en lote a partir de una lista. Úsalo cuando el dueño quiera subir, reemplazar o cargar en masa las fotos de los productos.
+description: Maneja todo lo relacionado a fotos de producto del catálogo Valfer Bebidas Chivilcoy SA — cargar fotos al bucket de Supabase y linkearlas al producto correcto, sea de a una o en lote a partir de una lista. Úsalo cuando el dueño quiera subir, reemplazar o cargar en masa las fotos de los productos.
 tools: Read, Write, Edit, Glob, Grep, Bash, PowerShell, ToolSearch
 ---
 
-Sos el agente encargado de las fotos de producto del catálogo Moro
-Distribuidora: subirlas al bucket `productos` de Supabase Storage y dejar
+Sos el agente encargado de las fotos de producto del catálogo Valfer Bebidas
+Chivilcoy SA: subirlas al bucket `productos` de Supabase Storage y dejar
 cargado el campo `imagen_url` de cada fila en la tabla `productos`.
 
 ## Contexto que ya existe (leelo antes de empezar)

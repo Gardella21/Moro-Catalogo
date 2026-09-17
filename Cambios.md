@@ -1,54 +1,44 @@
 Cambios:
-   1-La seccion manaos y despensa no va, sacalas. 
-
-[Listo el script, falta que lo corras vos] Manaos: no es una sección/categoría
-propia (las categorías son 11 fijas, no hay forma de crear otras desde el
-panel — ver `supabase/schema.sql`). Es una marca: encontré 2 productos con
-"Manaos" en el nombre, los dos dentro de "Aguas y sodas" ("Villa Manaos X 6 L"
-y "Manaos X 2L"), y ambos ya estaban sin precio cargado (Consultar). Dejé
-listo el UPDATE para ocultarlos (`visible = false`, no los borro, por si los
-querés de vuelta) en `scripts/cambios-2026-09-16.sql`.
-
-[Hecho] Despensa: confirmado por el dueño = "Mercadería" (103 productos) +
-"Limpieza" (18 productos). Se ocultan las 2 categorías enteras (visible =
-false en `categorias`), sin borrar ningún producto — quedan editables desde
-el panel, solo dejan de aparecer en el catálogo público. Script en
-`scripts/cambios-2026-09-16-b.sql`, falta que lo corras vos en el SQL Editor.
-
-CORRECCIÓN (verificado después de correr el script de arriba): ocultar la
-categoría solo saca el chip del nav, pero el catálogo trae los productos
-visibles sin filtrar por si su categoría está oculta — esos 121 productos
-seguían apareciendo en "Todo" y en el buscador. Se corrigió con
-`scripts/cambios-2026-09-16-c.sql`, ya corrido y verificado: 0 productos de
-Mercadería/Limpieza visibles.
-
-[Hecho] Línea Manaos (la de la imagen: Descartable X 3L y X 2,250 Ml, sabores
-Cola/Lima/Pomelo/Naranja, pack de 6, las 8 sin precio): identificados los 8
-productos exactos en "Gaseosas" (ids 1976-1983) — hay OTROS productos con
-esos mismos nombres de sabor pero de otras líneas/packs que no se tocan.
-Se ocultan (no se borran), mismo script `scripts/cambios-2026-09-16-b.sql`.
-Verificado: los 8 ya no aparecen, y los 2 productos "Manaos" bidón/sifón
-tampoco.
-
-Nota sobre por qué no lo apliqué yo directo: la clave que usa la app (`.env`,
-`VITE_SUPABASE_ANON_KEY`) solo tiene permiso de lectura — lo confirmé
-probando un `update` real que no tuvo ningún efecto (las políticas de
-seguridad de Supabase exigen una sesión logueada para escribir, y esa clave
-no la tiene). Para aplicar el cambio: entrá a Supabase → SQL Editor (logueado
-vos) → pegá el contenido de `scripts/cambios-2026-09-16.sql` → Run.
-
-   2-Estos hay que separarlos por gustos ya que estan todas en la misma card,hay que hacer una por gusto:
-            BAGGIO 1L (NARANJA, DURAZNO, MULTIFRUTA, MANZANA, MIXFRUTAL, PERA)
-            BAGGIO 200 (NARANJA, DURAZNO, MULTIFRUTA, MANZANA, MIXFRUTAL, PERA)
-            MONSTER (NEGRO, BLACO, MANGO, NARANJA, ROJO, VERDE, ANANA , AMARILLO, ROSA,DURAZNO)
-
-[Listo el script, falta que lo corras vos] Está en el mismo archivo
-`scripts/cambios-2026-09-16.sql` (parte 2). Borra esas 3 filas y las
-reemplaza por una fila por sabor: 6 de Baggio 1L, 6 de Baggio 200 y 10 de
-Monster (22 filas nuevas en total), cada una con el mismo precio unitario,
-precio de pack, unidades por pack, categoría y subcategoría que tenía la fila
-original — solo cambia el nombre, por ejemplo "Baggio 1L Naranja",
-"Baggio 1L Durazno", etc. (mismo patrón para Baggio 200 y Monster). Corregí
-"BLACO" → "Blanco" al nombrar el producto (typo en el pedido original).
-Mismo motivo que el punto 1: no lo pude aplicar yo porque la clave del front
-no tiene permiso de escritura — correlo con el mismo script del SQL Editor.
+    [Hecho] 1-Cambiar dentro de Gaseosas, los nombres de los navbar y el contenido de cada una. Poniendo las distintas lineas. Linea Coca, Linea Pepsi y Linea Cunnington. Si necesitas los nombres de los productos que irian en cada liena dime.Deja solo las 3 subsecciones:
+    Detalle: los 3 chips/subsecciones de Gaseosas (antes uno por tamaño: "Vidrio
+    1,250 Ml", "Ref 2L", "Latas 310 Ml", etc.) ahora son solo "Línea Coca",
+    "Línea Pepsi" y "Línea Cunnington", usando el mismo campo `subcategoria`
+    que ya alimentaba esos chips y los títulos de grupo (no hizo falta agregar
+    ninguna columna). Se matchearon los 106 productos que tiene hoy "Gaseosas"
+    en la base contra la lista que dejaste, tolerando los typos con los que la
+    escribiste (COCO COLA ZERO, GATORDE ROJO, POEMELO, "SIN      AZUCAR" con
+    espacios de más, etc.) y los 106 quedaron clasificados sin ambigüedad —
+    ninguno se dejó sin línea. La sección "gaseosa cordoba" (Descartable X 3 L
+    y X 2,25, con Cola/Lima Limón/Pomelo) la agrupé dentro de "Línea
+    Cunnington" porque así la anotaste, anidada debajo de esa línea.
+    Aproveché para corregir dos typos que encontré en el NOMBRE real ya
+    cargado en la base (no en tu lista): "Gatorde Rojo X 500" → "Gatorade
+    Rojo X 500", y "Descartable Paso D L Toro Tonica 1.500" → "...Toros..."
+    (el resto de los productos de esa marca ya decían "Toros" en plural, ese
+    era el único en singular).
+    Como la clave de Supabase que usa la app es de solo lectura, dejé el
+    script `scripts/cambios-2026-09-16-e.sql` con los UPDATE necesarios —
+    falta que lo corras en el SQL Editor de Supabase para que el cambio se
+    vea en el catálogo real (el código ya está listo y compila).
+                        Linea Coca: vidrio 1250ml: COCA COLA 1.250-COCA COLA SIN AZUCAR 1.250-SPRITE 1.250-FANTA 1.250.
+                                    REF 2L: COCA COLA REF. 2L.-COCA COLA SIN AZUCAR REF. 2L-COCA COLA LIGHT REF 2L.-SPRITE REF 2L.-FANTA REF. 2L.-SCHWEPPES POMELO S. AZUCAR REF 2L.
+                                    VIDRIO 350 ML: COCA COLA 350-COCA COLA SIN AZUCAR 350-COCA COLA LIGHT 350-SPRITE 350-FANTA 350
+                                    DESCARTABLE 3L: COCA COLA 3L-SPRITE 3L
+                                    DESCARTABLE 2,250 L: COCA COLA 2.250-SPRITE 2.250-FANTA 2.250
+                                    DESCARTABLE 1,500 ML: COCA COLA 1.500-COCA COLA SIN AZUCAR 1.500-COCA COLA LIGHT 1.500-SPRITE 1.500-SPRITE SIN AZUCAR 1.500-SCHWEPPES TONICA 1.500-SCHWEPPES POMELO 1.500-SCHEPPES CITRUS 1.500
+                                    DESCARTABLE 1,250 ML: POWER 1,250
+                                    DESCARTABLE 500 ML:COCA COLA 500-COCA COLA LIGTH 500-COCA COLA SIN AZUCAR 500-SPRITE 500-SPRTE SIN AZUCAR 500-FANTA 500-FANTA SIN AZUCAR X 500-POWER 500
+                                    LATAS 310 ML: COCA COLA-COCA COLA SIN AZUCAR-COCA C0LA LIGHT-SPRITE-FANTA-SCHWEPPES TONICA-SCHWEPPES TONICA SIN AZUCAR-SCHWEPPES POMELO
+                                    DESCARTABLE X 237 ML: COCA COLA X237 VIDRIO-COCO COLA ZERO X 237 VIDRIO-FANTA X 237 VIDRIO-SPRITE X 237 VIDRIO
+                        Linea Pepsi:DESCARTABLE 3L: PEPSI 3L-SEVEN UP 3L
+                                    DESCARTABLE 2,450 ML:SEVEN UP 2 LITROS RECO
+                                    DESCARTABLE 2 ML:PEPSI-SEVEN UP 
+                                    DESCARTABLE 1,500 ML:DESCARTABLE PEPSI 1.500-DESCARTABLE PEPSI ZERO 1.500-DESCARTABLE SEVEN UP 1.500-DESCARTABLE SEVEN UP FREE 1.500-DESCARTABLE PASO D L TORO TONICA 1.500-DESCARTABLE PASO D L TOROS POMELO 1.500-DESCARTABLE MIRINDA 1.500-DESCARTABLE HO2 CITRUS 1.500-DESCARTABLE HO2 NARANCHEÑO 1.500-DESCARTABLE LIMONETO 1.500
+                                    DESCARTABLE 1,250 ML:GATORADE 1250
+                                    DESCARTABLE 500 ML:-DESCARTABLE PEPSI 500-DESCARTABLE SEVEN UP 500-DESCARTABLE SEVEN UP FREE 500-DESCARTABLE PASO D L TOROS POMELO 500-DESCARTABLE MIRINDA 500-GATORDE ROJO X 500-GATORADE AZUL X 500-GATORADE NARANJA X 500-GATORADE MANZANA X 500-GATORADE MANGO VERDE X 500-GATORADE UVA X 500
+                                    LATAS:-LATA PEPSI 354-LATA SEVEN UP 354-LATA MIRINDA 354-LATA PASO D L TOROS TONICA 310-LATA PASO D L TOROS POMELO 310-LATA PEPSI BLACK X 354
+                        Linea Cunnington: DESCARTABLE X 2,250 ML-TONICA-TONICA SIN AZUCAR-POMELO-POEMELO SIN AZUCAR-COLA-COLA SIN AZUCAR-LIMA LIMON-LIMA LIMON SIN      AZUCAR-NARANJA-NARANJA SIN AZUCAR
+                                        DESCARTABLE X 1,500 ML: TONICA
+                                        DESCARTABLE X 500 ML: -TONICA: -TONICA SIN AZUCAR: -POMELO: -COLA SUAVE: -LIMA LIMON: -NARANJA: -COLA
+                                        gaseosa cordoba: DESCARTABLE X 3 L: COLA: LIMA LIMON: POMELO
+                                                         DESCARTABLE X 2,25: COLA: LIMA LIMON: POMELO

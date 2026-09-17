@@ -1,5 +1,5 @@
 -- ============================================================
--- Moro Distribuidora — esquema del catálogo
+-- Valfer Bebidas Chivilcoy SA — esquema del catálogo
 -- Pegar esto entero en Supabase → SQL Editor → Run
 -- ============================================================
 
@@ -95,14 +95,15 @@ create policy "fotos escribe admin" on storage.objects
 -- ============================================================
 insert into categorias (nombre, slug, orden) values
   ('Gaseosas',              'gaseosas',      1),
-  ('Aguas y sodas',         'aguas',         2),
-  ('Saborizadas',           'saborizadas',   3),
-  ('Cervezas',              'cervezas',      4),
-  ('Vinos',                 'vinos',         5),
-  ('Champagne y sidras',    'champagne',     6),
-  ('Aperitivos y licores',  'aperitivos',    7),
-  ('Jugos y energizantes',  'jugos',         8),
-  ('Galletitas y budines',  'galletitas',    9),
-  ('Mercadería',            'mercaderia',   10),
-  ('Limpieza',              'limpieza',     11)
+  ('Aguas',                 'aguas',         2),
+  ('Sodas',                 'sodas',         3),
+  ('Saborizadas',           'saborizadas',   4),
+  ('Cervezas',              'cervezas',      5),
+  ('Vinos',                 'vinos',         6),
+  ('Champagne y sidras',    'champagne',     7),
+  ('Aperitivos y licores',  'aperitivos',    8),
+  ('Jugos y energizantes',  'jugos',         9),
+  ('Galletitas y budines',  'galletitas',   10),
+  ('Mercadería',            'mercaderia',   11),
+  ('Limpieza',              'limpieza',     12)
 on conflict (slug) do nothing;

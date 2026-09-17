@@ -1,4 +1,4 @@
-# Dónde conseguir fotos de productos para el catálogo de Moro Distribuidora
+# Dónde conseguir fotos de productos para el catálogo de Valfer Bebidas Chivilcoy SA
 
 ## TL;DR
 - **La mejor fuente gratuita y legal es Open Food Facts** (ar.openfoodfacts.org): base abierta con ~16.180 productos argentinos, búsqueda por código de barras (EAN) y API JSON gratuita que devuelve las URLs de las imágenes para descargar en lote; las imágenes están bajo licencia CC-BY-SA 3.0, así que solo tenés que dar atribución.

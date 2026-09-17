@@ -2,7 +2,7 @@ import { useRef, useEffect, useState } from 'react'
 import { precio, sinPrecio } from '../lib/formato'
 
 const WPP = import.meta.env.VITE_WHATSAPP || '5492346000000'
-const NEGOCIO = import.meta.env.VITE_NEGOCIO || 'Moro Distribuidora'
+const NEGOCIO = import.meta.env.VITE_NEGOCIO || 'Valfer Bebidas Chivilcoy SA'
 
 /* ------------------------------------------------------------------ */
 /* Encabezado                                                          */

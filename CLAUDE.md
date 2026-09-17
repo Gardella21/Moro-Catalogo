@@ -1,6 +1,7 @@
 # Contexto para Claude Code
 
-Catálogo mayorista de Moro Distribuidora. Ver [README.md](./README.md) (cómo
+Catálogo mayorista de Valfer Bebidas Chivilcoy SA (antes "Moro Distribuidora",
+renombrado por pedido del dueño). Ver [README.md](./README.md) (cómo
 arrancar, conectar Supabase, publicar) y [DECISIONES.md](./DECISIONES.md)
 (por qué Supabase, problemas del Excel, estructura de datos) antes de tocar nada:
 ahí está el razonamiento completo, esto es solo el resumen de la sesión anterior.

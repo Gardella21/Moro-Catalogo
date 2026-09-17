@@ -4,16 +4,17 @@
 
 export const CATEGORIAS_DEMO = [
   { id: 1, nombre: 'Gaseosas', slug: 'gaseosas', orden: 1 },
-  { id: 2, nombre: 'Aguas y sodas', slug: 'aguas', orden: 2 },
-  { id: 3, nombre: 'Saborizadas', slug: 'saborizadas', orden: 3 },
-  { id: 4, nombre: 'Cervezas', slug: 'cervezas', orden: 4 },
-  { id: 5, nombre: 'Vinos', slug: 'vinos', orden: 5 },
-  { id: 6, nombre: 'Champagne y sidras', slug: 'champagne', orden: 6 },
-  { id: 7, nombre: 'Aperitivos y licores', slug: 'aperitivos', orden: 7 },
-  { id: 8, nombre: 'Jugos y energizantes', slug: 'jugos', orden: 8 },
-  { id: 9, nombre: 'Galletitas y budines', slug: 'galletitas', orden: 9 },
-  { id: 10, nombre: 'Mercadería', slug: 'mercaderia', orden: 10 },
-  { id: 11, nombre: 'Limpieza', slug: 'limpieza', orden: 11 }
+  { id: 2, nombre: 'Aguas', slug: 'aguas', orden: 2 },
+  { id: 12, nombre: 'Sodas', slug: 'sodas', orden: 3 },
+  { id: 3, nombre: 'Saborizadas', slug: 'saborizadas', orden: 4 },
+  { id: 4, nombre: 'Cervezas', slug: 'cervezas', orden: 5 },
+  { id: 5, nombre: 'Vinos', slug: 'vinos', orden: 6 },
+  { id: 6, nombre: 'Champagne y sidras', slug: 'champagne', orden: 7 },
+  { id: 7, nombre: 'Aperitivos y licores', slug: 'aperitivos', orden: 8 },
+  { id: 8, nombre: 'Jugos y energizantes', slug: 'jugos', orden: 9 },
+  { id: 9, nombre: 'Galletitas y budines', slug: 'galletitas', orden: 10 },
+  { id: 10, nombre: 'Mercadería', slug: 'mercaderia', orden: 11 },
+  { id: 11, nombre: 'Limpieza', slug: 'limpieza', orden: 12 }
 ]
 
 const p = (id, cat, sub, nombre, unit, pack, uxp) => ({
@@ -25,29 +26,31 @@ const p = (id, cat, sub, nombre, unit, pack, uxp) => ({
 
 export const PRODUCTOS_DEMO = [
   // Gaseosas
-  p(1, 1, 'Línea Coca · Retornable 1,25 L', 'Coca Cola 1.250', 2830, 22640, 8),
-  p(2, 1, 'Línea Coca · Retornable 1,25 L', 'Coca Cola Sin Azúcar 1.250', 2830, 22640, 8),
-  p(3, 1, 'Línea Coca · Retornable 1,25 L', 'Sprite 1.250', 2830, 22640, 8),
-  p(4, 1, 'Línea Coca · Retornable 2 L', 'Coca Cola Ref. 2 L', 3488, 31392, 9),
-  p(5, 1, 'Línea Coca · Descartable 2,25 L', 'Coca Cola 2.250', 5340, 32040, 6),
-  p(6, 1, 'Línea Coca · Descartable 1,5 L', 'Coca Cola 1.500', 3855, 23130, 6),
-  p(7, 1, 'Línea Coca · Descartable 500 ml', 'Coca Cola 500', 1832, 21984, 12),
-  p(8, 1, 'Línea Coca · Latas 310 ml', 'Coca Cola lata', 1500, 9000, 6),
-  p(9, 1, 'Línea Coca · Latas 310 ml', 'Schweppes Tónica lata', 1500, 9000, 6),
-  p(10, 1, 'Línea Pepsi · Descartable 1,5 L', 'Pepsi 1.500', 2800, 16800, 6),
-  p(11, 1, 'Línea Pepsi · Descartable 1,5 L', 'Seven Up 1.500', 2800, 16800, 6),
-  p(12, 1, 'Línea Pepsi · Latas', 'Lata Pepsi 354', 1045, 25080, 24),
-  p(13, 1, 'Cunnington · Descartable 2,25 L', 'Cunnington Tónica 2.250', 1810, 10860, 6),
-  p(14, 1, 'Línea Manaos · Descartable 3 L', 'Manaos Cola 3 L', null, null, 6),
+  p(1, 1, 'Línea Coca', 'Coca Cola 1.250', 2830, 22640, 8),
+  p(2, 1, 'Línea Coca', 'Coca Cola Sin Azúcar 1.250', 2830, 22640, 8),
+  p(3, 1, 'Línea Coca', 'Sprite 1.250', 2830, 22640, 8),
+  p(4, 1, 'Línea Coca', 'Coca Cola Ref. 2 L', 3488, 31392, 9),
+  p(5, 1, 'Línea Coca', 'Coca Cola 2.250', 5340, 32040, 6),
+  p(6, 1, 'Línea Coca', 'Coca Cola 1.500', 3855, 23130, 6),
+  p(7, 1, 'Línea Coca', 'Coca Cola 500', 1832, 21984, 12),
+  p(8, 1, 'Línea Coca', 'Coca Cola lata', 1500, 9000, 6),
+  p(9, 1, 'Línea Coca', 'Schweppes Tónica lata', 1500, 9000, 6),
+  p(10, 1, 'Línea Pepsi', 'Pepsi 1.500', 2800, 16800, 6),
+  p(11, 1, 'Línea Pepsi', 'Seven Up 1.500', 2800, 16800, 6),
+  p(12, 1, 'Línea Pepsi', 'Lata Pepsi 354', 1045, 25080, 24),
+  p(13, 1, 'Línea Cunnington', 'Cunnington Tónica 2.250', 1810, 10860, 6),
+  p(14, 1, 'Línea Cunnington', 'Manaos Cola 3 L', null, null, 6),
 
-  // Aguas y sodas
+  // Aguas
   p(20, 2, 'Descartable 2 L', 'Villavicencio 2 L', 1860, 11160, 6),
   p(21, 2, 'Descartable 2 L', 'Glaciar 2 L', 1950, 11700, 6),
   p(22, 2, 'Descartable 2 L', 'Sierra de los Padres 2 L', 1234, 7404, 6),
   p(23, 2, 'Descartable 500 ml', 'Villavicencio 500', 975, 11700, 12),
   p(24, 2, 'Descartable 500 ml', 'Glon 500', 700, 8400, 12),
-  p(25, 2, 'Sodas · Sifón descartable', 'Sierra de los Padres 1,750 ml', 1500, 9000, 6),
-  p(26, 2, 'Sodas · Sifón descartable', 'Torasso 2 L', 1315, 7890, 6),
+
+  // Sodas
+  p(25, 12, 'Sifón descartable', 'Sierra de los Padres 1,750 ml', 1500, 9000, 6),
+  p(26, 12, 'Sifón descartable', 'Torasso 2 L', 1315, 7890, 6),
 
   // Saborizadas
   p(30, 3, 'Descartable 1,5 L', 'Aquarius Naranja 1.500', 3202, 19212, 6),
