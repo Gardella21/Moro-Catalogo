@@ -12,7 +12,7 @@ export function Encabezado({ actualizado, sesion, onSalir }) {
     <header className="border-b-[3px] border-brass bg-masthead text-on-masthead">
       <div className="mx-auto flex max-w-3xl items-start justify-between gap-3 px-4 pt-5 pb-4">
         <div className="flex items-center gap-3">
-          <img src="/logo-moro.png" alt="" className="h-11 w-11 shrink-0 rounded-full" />
+          <img src="/logo-nuevo.jpeg" alt="" className="h-11 w-11 shrink-0 rounded-full" />
           <div>
             <h1 className="font-serif text-[22px] font-700 leading-[28px] tracking-[0.01em] desde720:text-[30px] desde720:leading-[36px]">
               {NEGOCIO}

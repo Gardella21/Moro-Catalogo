@@ -163,7 +163,7 @@ export default function Admin() {
       <header className="sticky top-0 z-20 border-b-[3px] border-brass bg-masthead text-on-masthead">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3">
           <div className="flex items-center gap-3">
-            <img src="/logo-moro.png" alt="" className="h-10 w-10 shrink-0 rounded-full" />
+            <img src="/logo-nuevo.jpeg" alt="" className="h-10 w-10 shrink-0 rounded-full" />
             <div>
               <h1 className="font-serif text-[22px] font-700 leading-[28px] tracking-[0.01em]">Panel</h1>
               <p className="cifra font-sans text-meta text-masthead-muted">{productos.length} productos cargados</p>
@@ -410,7 +410,7 @@ function Formulario({ inicial, categorias, onCancelar, onGuardar }) {
 
           <div className="grid grid-cols-2 gap-3">
             <Campo etiqueta="Precio unitario" tipo="number" valor={f.precio_unit} onChange={set('precio_unit')}
-                   ayuda="Vacío = Consultar" />
+                   ayuda="Vacío = Sin Stock" />
             <Campo etiqueta="Precio por pack" tipo="number" valor={f.precio_pack} onChange={set('precio_pack')} />
           </div>
 

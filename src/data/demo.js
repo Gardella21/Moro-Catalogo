@@ -11,8 +11,8 @@ export const CATEGORIAS_DEMO = [
   { id: 5, nombre: 'Vinos', slug: 'vinos', orden: 6 },
   { id: 6, nombre: 'Champagne y sidras', slug: 'champagne', orden: 7 },
   { id: 7, nombre: 'Aperitivos y licores', slug: 'aperitivos', orden: 8 },
-  { id: 8, nombre: 'Jugos y energizantes', slug: 'jugos', orden: 9 },
-  { id: 9, nombre: 'Galletitas y budines', slug: 'galletitas', orden: 10 },
+  { id: 8, nombre: 'Jugos-Energizantes y Termas', slug: 'jugos', orden: 9 },
+  { id: 9, nombre: 'Galletitas y Dulces', slug: 'galletitas', orden: 10 },
   { id: 10, nombre: 'Mercadería', slug: 'mercaderia', orden: 11 },
   { id: 11, nombre: 'Limpieza', slug: 'limpieza', orden: 12 }
 ]
@@ -101,7 +101,7 @@ export const PRODUCTOS_DEMO = [
   p(84, 8, 'Energizantes', 'Dr. Lemon Vodka x 1 L', 3560, 42720, 12),
   p(85, 8, 'Termas', 'Terma Serrano', 2170, 26040, 12),
 
-  // Galletitas y budines
+  // Galletitas y Dulces
   p(90, 9, 'Nevares', 'Alfajor Negro Genio Triple', 347, 8328, 24),
   p(91, 9, 'Nevares', 'Turrón Nevares x 25 g', 218, 10900, 50),
   p(92, 9, 'Nevares', 'Obleas Chocolate x 33 g', 305, 14640, 48),

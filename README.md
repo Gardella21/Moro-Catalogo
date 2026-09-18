@@ -62,7 +62,7 @@ npm run importar
 
 El script entiende la estructura del Excel: descarta los títulos y encabezados,
 convierte los subtítulos (`DESCARTABLE 1,500 ML`) en subcategoría de las filas de
-abajo, y pasa los `$0.00` a `NULL` para que salgan como "Consultar".
+abajo, y pasa los `$0.00` a `NULL` para que salgan como "Sin Stock".
 
 Corré primero con una hoja sola y mirá el SQL generado antes de importar todo.
 
@@ -93,7 +93,7 @@ src/
   hooks/useCatalogo.js   trae todo el catálogo de una vez
   lib/
     supabase.js     cliente; si no hay .env, la app usa los datos de demo
-    formato.js      precios en pesos, "Consultar" cuando es NULL, búsqueda sin acentos
+    formato.js      precios en pesos, "Sin Stock" cuando es NULL, búsqueda sin acentos
   data/demo.js      muestra real del Excel para desarrollar sin backend
 supabase/schema.sql tablas + permisos + categorías
 scripts/importar-csv.mjs  Excel → SQL

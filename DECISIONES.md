@@ -105,7 +105,7 @@ id                            id
 nombre    → navbar            categoria_id  → categorias.id
 slug                          subcategoria  → texto libre, agrupa dentro de la sección
 orden                         nombre, descripcion, imagen_url
-visible                       precio_unit   → NULL = "Consultar"
+visible                       precio_unit   → NULL = "Sin Stock"
                               precio_pack, unidades_pack
                               visible, orden, actualizado
 ```

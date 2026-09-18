@@ -18,7 +18,7 @@
     --on-masthead: #ffffff;     /* título y enlaces del encabezado */
     --masthead-muted: #c2ccda;  /* subtítulo del encabezado */
     --brass: #a8843c;           /* solo una línea de 3px debajo del encabezado */
-    --bordo: #8a2432;           /* botón "Borrar" y la leyenda "Consultar" */
+    --bordo: #8a2432;           /* botón "Borrar" y la leyenda "Sin Stock" */
     --bordo-soft: #f5e5e7;      /* fondo del botón "Borrar" al pasar el mouse */
     --focus-ring: 0 0 0 2px #ffffff, 0 0 0 4px #1e3a5f;
 
