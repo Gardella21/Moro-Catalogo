@@ -13,16 +13,34 @@ CÓMO ENCUENTRA LA REGIÓN DE CADA FOTO
    tiles), descarta los que ocupan casi toda la página (fondo del diseño).
 2. Los agrupa: dos bboxes que se tocan o se superponen (gap <= GAP_PT) son
    pedazos de la misma foto. La unión del grupo es la región de la foto.
-3. Renderiza la página a DPI y recorta esa región.
-4. Guarda además, por cada recorte, los bloques de texto más cercanos
+3. AGRANDA esa región (ver "MARGEN" abajo) y la renderiza a DPI.
+4. Cuadra el recorte estirando sus píxeles de borde (ver "CUADRADO").
+5. Guarda además, por cada recorte, los bloques de texto más cercanos
    (tipo Voronoi, igual que el script viejo) como PISTA para el matcheo —
    pero el matcheo final se hace MIRANDO las imágenes, no solo con esto.
+
+MARGEN (por qué existe)
+La primera versión recortaba exactamente el bbox útil (el rectángulo con
+alfa > 0 de la imagen embebida) y las botellas salían cortadas al ras: se
+perdían el corcho arriba y la base abajo. La foto completa SÍ está en la
+página, solo hay que pedir un rectángulo más grande. Se agranda por
+MARGEN_X / MARGEN_Y, pero cada lado frena antes de comerse un bloque de
+texto o la foto del producto de al lado.
+
+CUADRADO (por qué existe)
+Las tarjetas del catálogo muestran la foto en un cuadrado. Una foto alta y
+angosta dejaba dos franjas blancas a los costados y se veía el rectángulo
+del fondo del PDF pegado contra el blanco de la tarjeta. Acá se cuadra
+rellenando con los propios píxeles del borde de la foto (estirados y
+difuminados hacia el color de fondo), así la tarjeta queda a todo ancho y
+sin costura. Se guarda JPEG porque el resultado es una foto sin
+transparencia y el PNG cuadrado pesaba ~1 MB por producto.
 
 CÓMO CORRERLO (desde la raíz del repo, PowerShell):
   $env:PYTHONPATH=".pytools"; & "C:\Users\matia\AppData\Local\Python\bin\python.exe" scripts\recortar-fotos-pdf.py <dir-salida> [dpi]
 
 Salida:
-  <dir-salida>/<slug-pdf>/pXXX-cYY.png
+  <dir-salida>/<slug-pdf>/pXXX-cYY.jpg
   <dir-salida>/recortes-manifest.json
 """
 import json
@@ -31,10 +49,20 @@ import os
 import re
 import sys
 
+import numpy as np
 import pymupdf
+from PIL import Image, ImageFilter
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DIR_PDFS = os.path.join(RAIZ, "pdf-imagenes")
+
+MARGEN_X = 0.18         # cuánto se agranda el bbox a los costados
+MARGEN_Y = 0.10         # y arriba/abajo (la botella se corta sobre todo acá)
+SEP_TEXTO_PT = 2.0      # aire que se deja contra un texto o una foto vecina
+LADO_SALIDA = 800       # px del cuadrado final
+DPI_MAX = 700           # techo del dpi por foto (más no agrega detalle real)
+OCUPA = 0.90            # qué fracción del cuadrado ocupa la foto real
+CALIDAD_JPEG = 86
 
 GAP_PT = 2.0            # tiles de la misma foto se tocan; 2pt de tolerancia
 MAX_AREA_RATIO = 0.45   # más que esto = fondo decorativo de la página
@@ -213,6 +241,84 @@ def visibles_de_pagina(doc, page, data, area_pagina):
     return bboxes
 
 
+def expandir(bb, page_rect, obstaculos):
+    """Agranda bb por MARGEN_*, frenando cada lado antes de un obstáculo.
+
+    Un obstáculo es un bloque de texto de la página o el bbox de otra foto:
+    sin esto, al pedir más margen el recorte se come el nombre del producto
+    impreso abajo o un pedazo de la botella de al lado.
+    """
+    x0, y0, x1, y1 = bb
+    w, h = x1 - x0, y1 - y0
+    nx0, ny0 = x0 - w * MARGEN_X, y0 - h * MARGEN_Y
+    nx1, ny1 = x1 + w * MARGEN_X, y1 + h * MARGEN_Y
+    for ox0, oy0, ox1, oy1 in obstaculos:
+        # solo frena el lado por el que el obstáculo está realmente enfrentado
+        if ox1 > x0 and ox0 < x1:
+            if oy1 <= y0 + 1:
+                ny0 = max(ny0, oy1 + SEP_TEXTO_PT)
+            elif oy0 >= y1 - 1:
+                ny1 = min(ny1, oy0 - SEP_TEXTO_PT)
+        if oy1 > y0 and oy0 < y1:
+            if ox1 <= x0 + 1:
+                nx0 = max(nx0, ox1 + SEP_TEXTO_PT)
+            elif ox0 >= x1 - 1:
+                nx1 = min(nx1, ox0 - SEP_TEXTO_PT)
+    # nunca más chico que el bbox original
+    rect = pymupdf.Rect(min(nx0, x0), min(ny0, y0), max(nx1, x1), max(ny1, y1))
+    return rect & page_rect
+
+
+def cuadrar(img):
+    """Mete la foto en un cuadrado rellenando con sus propios píxeles de borde.
+
+    Los costados se rellenan estirando la columna del borde (el fondo de
+    estas fotos es plano en horizontal, así que no se nota el estirado).
+    Arriba y abajo se hace un degradé desde la fila del borde hacia el color
+    medio del fondo, porque ahí sí suele haber una franja más clara (la
+    sombra bajo la botella) que estirada quedaría como una banda dura.
+    """
+    lado = LADO_SALIDA
+    util = int(lado * OCUPA)
+    # escala SIEMPRE (thumbnail() solo achica, y así los recortes chicos
+    # quedaban minúsculos en el medio del cuadrado, cada tarjeta con la
+    # botella de un tamaño distinto)
+    esc = util / max(img.width, img.height)
+    im = img.convert("RGB").resize(
+        (max(1, round(img.width * esc)), max(1, round(img.height * esc))), Image.LANCZOS)
+    a = np.asarray(im).astype(np.float32)
+    ah, aw, _ = a.shape
+    ox, oy = (lado - aw) // 2, (lado - ah) // 2
+
+    ring = np.concatenate([a[0], a[-1], a[:, 0], a[:, -1]])
+    fondo = np.median(ring, axis=0)
+
+    out = np.zeros((lado, lado, 3), np.float32)
+    out[oy:oy + ah, ox:ox + aw] = a
+
+    # arriba / abajo: degradé fila-de-borde -> color de fondo
+    if oy > 0:
+        t = (np.arange(oy, 0, -1, dtype=np.float32) / oy)[:, None, None]
+        out[:oy, ox:ox + aw] = a[0] * (1 - t) + fondo * t
+    resto = lado - (oy + ah)
+    if resto > 0:
+        t = (np.arange(1, resto + 1, dtype=np.float32) / resto)[:, None, None]
+        out[oy + ah:, ox:ox + aw] = a[-1] * (1 - t) + fondo * t
+
+    # costados: estirar la columna de borde (ya completa en todo el alto)
+    if ox > 0:
+        out[:, :ox] = out[:, ox:ox + 1]
+    resto_x = lado - (ox + aw)
+    if resto_x > 0:
+        out[:, ox + aw:] = out[:, ox + aw - 1:ox + aw]
+
+    cuadro = Image.fromarray(np.clip(out, 0, 255).astype(np.uint8))
+    # suaviza el relleno sin tocar la foto: se difumina todo y se repega la foto
+    suave = cuadro.filter(ImageFilter.GaussianBlur(6))
+    suave.paste(im, (ox, oy))
+    return suave
+
+
 def main():
     salida = sys.argv[1]
     dpi = int(sys.argv[2]) if len(sys.argv) > 2 else 200
@@ -268,19 +374,30 @@ def main():
 
             for gi, g in enumerate(grupos):
                 bb = g["bbox"]
-                clip = pymupdf.Rect(bb[0] - 1, bb[1] - 1, bb[2] + 1, bb[3] + 1) & page.rect
+                obstaculos = [tuple(t["bbox"]) for t in textos]
+                obstaculos += [tuple(o["bbox"]) for o in grupos if o is not g]
+                clip = expandir(bb, page.rect, obstaculos)
                 if clip.width < 5 or clip.height < 5:
                     continue
-                # se renderiza solo la región de la foto (rápido y en alta res)
-                recorte = page.get_pixmap(dpi=dpi, clip=clip)
-                nombre = f"p{pindex+1:03d}-c{gi+1:02d}.png"
-                recorte.save(os.path.join(dpdf, nombre))
+                # DPI a medida: se renderiza con la resolución justa para que
+                # el lado largo caiga en el cuadrado final sin tener que
+                # agrandar píxeles después (las fotos chicas de la página
+                # salían borrosas si se renderizaban todas al mismo dpi)
+                lado_pt = max(clip.width, clip.height)
+                dpi_foto = min(DPI_MAX, max(dpi, int(LADO_SALIDA * OCUPA / lado_pt * 72) + 1))
+                recorte = page.get_pixmap(dpi=dpi_foto, clip=clip)
+                foto = Image.frombytes("RGB", (recorte.width, recorte.height), recorte.samples)
+                cuadro = cuadrar(foto)
+                nombre = f"p{pindex+1:03d}-c{gi+1:02d}.jpg"
+                cuadro.save(os.path.join(dpdf, nombre), "JPEG",
+                            quality=CALIDAD_JPEG, optimize=True, progressive=True)
                 g["candidatos"].sort(key=lambda c: c["distancia"])
                 items.append({
                     "archivo": os.path.join(sp, nombre).replace("\\", "/"),
                     "pagina": pindex + 1,
                     "bbox_pt": [round(v, 1) for v in bb],
-                    "px": [recorte.width, recorte.height],
+                    "bbox_con_margen_pt": [round(v, 1) for v in clip],
+                    "px": [cuadro.width, cuadro.height],
                     "piezas": g["piezas"],
                     "candidatos": g["candidatos"][:MAX_TEXTOS],
                 })

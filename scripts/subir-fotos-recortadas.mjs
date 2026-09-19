@@ -25,7 +25,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js'
-import { readFile, writeFile } from 'node:fs/promises'
+import { access, readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 
 process.loadEnvFile(path.join(process.cwd(), '.env'))
@@ -51,6 +51,19 @@ const normalizar = (s) =>
 
 const slug = (nombre) =>
   normalizar(nombre).replace(/[^\w]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80)
+
+/** Ubica el recorte probando la extensión del mapeo y, si no está, .jpg/.png. */
+async function resolverRecorte(archivo) {
+  const candidatos = [archivo, archivo.replace(/\.\w+$/, '.jpg'), archivo.replace(/\.\w+$/, '.png')]
+  for (const c of candidatos) {
+    const ruta = path.join(DIR_RECORTES, c)
+    try {
+      await access(ruta)
+      return { ruta, ext: path.extname(c).slice(1).toLowerCase() }
+    } catch { /* probar el siguiente */ }
+  }
+  throw new Error(`no existe el recorte ${archivo} (ni como .jpg ni como .png)`)
+}
 
 async function main() {
   const mapeoRaw = JSON.parse(await readFile(MAPEO, 'utf8'))
@@ -119,13 +132,21 @@ async function main() {
     const tanda = aSubir.slice(i, i + TANDA)
     await Promise.all(tanda.map(async ({ archivo, producto }) => {
       try {
-        const buffer = await readFile(path.join(DIR_RECORTES, archivo))
-        const nombreArchivo = `${slug(producto.nombre)}-${producto.id}.png`
+        // El mapeo (hecho a ojo) tiene los nombres viejos en .png; desde que
+        // los recortes se cuadran y se guardan en JPEG el archivo real es
+        // .jpg. Se resuelve acá para no tener que reescribir el mapeo.
+        const { ruta, ext } = await resolverRecorte(archivo)
+        const buffer = await readFile(ruta)
+        const nombreArchivo = `${slug(producto.nombre)}-${producto.id}.${ext}`
 
         const { error: errUpload } = await supabase.storage.from('productos').upload(nombreArchivo, buffer, {
-          cacheControl: '31536000', upsert: true, contentType: 'image/png',
+          cacheControl: '31536000', upsert: true, contentType: ext === 'jpg' ? 'image/jpeg' : 'image/png',
         })
         if (errUpload) throw errUpload
+
+        // la versión vieja quedaba huérfana en el bucket al cambiar de formato
+        const viejo = `${slug(producto.nombre)}-${producto.id}.${ext === 'jpg' ? 'png' : 'jpg'}`
+        await supabase.storage.from('productos').remove([viejo])
 
         const { data: pub } = supabase.storage.from('productos').getPublicUrl(nombreArchivo)
         // ?v= para romper la cache del CDN si la foto ya existía con ese nombre

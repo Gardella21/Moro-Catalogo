@@ -284,9 +284,13 @@ function Miniatura({ src, alt, grande }) {
       </div>
     )
   }
+  // object-cover y no contain: los recortes se generan ya cuadrados
+  // (scripts/recortar-fotos-pdf.py rellena los lados con el propio fondo de
+  // la foto), así que llenan la caja sin franjas blancas al costado; cover
+  // solo actúa de red por si alguna foto vieja no es exactamente cuadrada.
   return (
     <img src={src} alt={alt} loading="lazy" decoding="async"
-         className={`object-contain bg-surface-raised ${tamano}`} />
+         className={`object-cover bg-surface-sunken ${tamano}`} />
   )
 }
 
