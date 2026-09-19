@@ -4,3 +4,11 @@ dist
 .env.local
 .DS_Store
 scripts/csv/*.csv
+.pytools
+scripts/fotos-extraidas
+scripts/fotos-recortadas
+scripts/fotos-recortadas-reporte.json
+scripts/fotos-manifest.json
+scripts/fotos-manifest-productos.json
+scripts/fotos-reporte.json
+pdf-imagenes

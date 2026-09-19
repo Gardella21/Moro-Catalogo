@@ -238,7 +238,7 @@ function useArrastreHorizontal(ref, deps = []) {
 export function TarjetaProducto({ p }) {
   return (
     <article className="flex h-full flex-col overflow-hidden rounded-lg border border-line bg-surface-raised">
-      <div className="aspect-square w-full bg-surface-sunken">
+      <div className="relative aspect-square w-full overflow-hidden bg-surface-sunken">
         <Miniatura src={p.imagen_url} alt={p.nombre} grande />
       </div>
 
@@ -268,7 +268,12 @@ export function TarjetaProducto({ p }) {
 }
 
 function Miniatura({ src, alt, grande }) {
-  const tamano = grande ? 'h-full w-full' : 'h-14 w-14 shrink-0 rounded-md border border-line'
+  // "grande" vive dentro de un contenedor `relative aspect-square overflow-hidden`:
+  // se posiciona absoluto para no participar del layout en flujo, porque una imagen
+  // muy angosta/alta (recortes de PDF, ej. 80x316) hace que `h-full` con `aspect-ratio`
+  // en el padre no alcance a fijar la altura y el navegador la calcula por el alto
+  // intrínseco de la imagen en vez de por el cuadrado del contenedor.
+  const tamano = grande ? 'absolute inset-0 h-full w-full' : 'h-14 w-14 shrink-0 rounded-md border border-line'
 
   if (!src) {
     return (
@@ -281,7 +286,7 @@ function Miniatura({ src, alt, grande }) {
   }
   return (
     <img src={src} alt={alt} loading="lazy" decoding="async"
-         className={`object-cover bg-surface-raised ${tamano}`} />
+         className={`object-contain bg-surface-raised ${tamano}`} />
   )
 }
 
