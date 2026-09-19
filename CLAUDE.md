@@ -57,7 +57,16 @@ ahí está el razonamiento completo, esto es solo el resumen de la sesión anter
   `Admin.jsx` antes de aplicar el ajuste.
 - Cargar `VITE_WHATSAPP` (número real) y `VITE_NEGOCIO` en Vercel (tipo
   Config, no Secret) + redeploy.
-- Fotos: por ahora ningún producto tiene imagen (ver DECISIONES.md punto 3d).
+- Fotos: 364 productos tienen foto (recortadas de los PDF de `pdf-imagenes/`,
+  ver `scripts/recortar-fotos-pdf.py`). Las categorías Gaseosas, Mercadería,
+  Saborizadas, Limpieza y Jugos siguen sin foto porque esos productos no
+  están fotografiados en ningún PDF: hace falta otra fuente.
+  - Para regenerar: `recortar-fotos-pdf.py` → mirar con `preview-fotos.mjs`
+    → subir con `subir-fotos-recortadas.mjs --subir` (pisa producción).
+  - **Sacarle el fondo a las fotos no es viable** y ya se descartó: funciona
+    en la mitad y falla en la otra mitad, porque muchas traen fondo
+    fotográfico propio (uvas, degradés) y no un color plano. Por eso los
+    recortes se cuadran rellenando con sus propios píxeles de borde.
 - Revisar en vivo (con la sesión real del dueño) que el panel de ajuste de
   precios por lote funcione como se espera — no se probó logueado, solo se
   verificó que compila y que la lógica de sesión es la misma ya probada antes.
