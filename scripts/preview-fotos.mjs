@@ -104,18 +104,22 @@ async function desdeRecortes() {
 /* Modo 2: fotos bajadas de la web                                     */
 /* ------------------------------------------------------------------ */
 async function desdeWeb() {
+  // El reporte lo deja buscar-fotos-web.mjs, pero es opcional: si ponés fotos
+  // a mano en la carpeta (propias, del proveedor, de donde sea), alcanza con
+  // que se llamen <id>.jpg — sin reporte se muestran igual.
   let reporte = []
   try {
     reporte = JSON.parse(await readFile(path.join(DIR_WEB, 'reporte.json'), 'utf8'))
-  } catch {
-    console.error('No hay scripts/fotos-web/reporte.json. Corré antes: node scripts/buscar-fotos-web.mjs')
-    process.exit(1)
-  }
+  } catch { /* sin reporte: todas cuentan como puestas a mano */ }
+
   let archivos
   try {
     archivos = new Set((await readdir(DIR_WEB)).filter((f) => f.endsWith('.jpg')))
   } catch {
-    console.error('No hay scripts/fotos-web/'); process.exit(1)
+    console.error(`No existe ${DIR_WEB}.`)
+    console.error('Creála y dejá ahí las fotos como <id>.jpg (el id de cada producto sale')
+    console.error('de scripts/faltan-fotos.html, columna "guardala como").')
+    process.exit(1)
   }
   const info = new Map(reporte.map((r) => [r.id, r]))
   // varios tamaños del mismo producto caen en la misma ficha de la tienda y
@@ -125,7 +129,12 @@ async function desdeWeb() {
   // también toma fotos puestas a mano en la carpeta, aunque no estén en el reporte
   let ids = [...archivos].map((f) => Number(f.replace('.jpg', ''))).filter(Boolean)
   if (SOLO_EAN) ids = ids.filter((id) => info.get(id)?.via === 'ean')
-  if (!ids.length) { console.error('No hay fotos en scripts/fotos-web/'); process.exit(1) }
+  if (!ids.length) {
+    console.error(`No hay fotos en ${DIR_WEB}.`)
+    console.error('Cada archivo tiene que llamarse <id>.jpg, con el id del producto')
+    console.error('(está en scripts/faltan-fotos.html, columna "guardala como").')
+    process.exit(1)
+  }
   const productos = await traerProductos(ids)
 
   const extra = (p) => {
