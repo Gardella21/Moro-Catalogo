@@ -14,3 +14,7 @@ scripts/fotos-reporte.json
 pdf-imagenes
 scripts/preview-fotos
 scripts/fotos-libres.json
+scripts/fotos-web
+scripts/faltan-fotos.csv
+scripts/faltan-fotos.html
+scripts/ean-candidatos.json
