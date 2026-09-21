@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { supabase, hayBackend } from '../lib/supabase'
 import { precio, normalizar } from '../lib/formato'
+import { useArrastreHorizontal } from '../lib/arrastre'
 
 const VACIO = {
   nombre: '', descripcion: '', subcategoria: '', categoria_id: '',
@@ -15,6 +16,7 @@ export default function Admin() {
   const [productos, setProductos] = useState([])
   const [busqueda, setBusqueda] = useState('')
   const [filtroCategoria, setFiltroCategoria] = useState(null)   // null = todas las secciones
+  const cinta = useRef(null)                                     // cinta de chips de sección
   const [editando, setEditando] = useState(null)   // objeto producto o null
   const [aviso, setAviso] = useState(null)
 
@@ -49,6 +51,8 @@ export default function Admin() {
     setProductos(p.data ?? [])
   }
   useEffect(() => { if (sesion) recargar() }, [sesion])
+
+  useArrastreHorizontal(cinta, [categorias.length])
 
   const visibles = useMemo(() => {
     const q = normalizar(busqueda).trim()
@@ -176,7 +180,8 @@ export default function Admin() {
         </div>
       </header>
 
-      <div className="sin-barra overflow-x-auto border-b border-line bg-surface-raised">
+      <div ref={cinta}
+           className="sin-barra cursor-grab touch-pan-x overflow-x-auto border-b border-line bg-surface-raised active:cursor-grabbing">
         <div className="mx-auto flex max-w-3xl gap-1.5 px-4 py-2.5">
           <NavChip activa={filtroCategoria === null} onClick={() => setFiltroCategoria(null)}>
             Todas
