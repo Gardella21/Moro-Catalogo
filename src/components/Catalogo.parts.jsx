@@ -1,4 +1,5 @@
 import { useRef, useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { precio, sinPrecio } from '../lib/formato'
 import { useArrastreHorizontal } from '../lib/arrastre'
 
@@ -27,12 +28,20 @@ export function Encabezado({ actualizado, sesion, onSalir }) {
         </div>
 
         {sesion && (
-          <button
-            onClick={onSalir}
-            className="mt-1 shrink-0 rounded-md border border-on-masthead/25 px-3 py-1.5 font-sans text-sm font-600 text-on-masthead/90 hover:bg-on-masthead/10"
-          >
-            Cerrar sesión
-          </button>
+          <div className="mt-1 flex shrink-0 gap-2">
+            <Link
+              to="/panel"
+              className="rounded-md border border-on-masthead/25 px-3 py-1.5 font-sans text-sm font-600 text-on-masthead/90 hover:bg-on-masthead/10"
+            >
+              Volver al panel
+            </Link>
+            <button
+              onClick={onSalir}
+              className="rounded-md border border-on-masthead/25 px-3 py-1.5 font-sans text-sm font-600 text-on-masthead/90 hover:bg-on-masthead/10"
+            >
+              Cerrar sesión
+            </button>
+          </div>
         )}
       </div>
     </header>
