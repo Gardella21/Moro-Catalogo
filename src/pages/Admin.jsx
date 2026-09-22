@@ -375,6 +375,7 @@ function Formulario({ inicial, categorias, onCancelar, onGuardar }) {
     imagen_url: inicial.imagen_url ?? ''
   })
   const [subiendo, setSubiendo] = useState(false)
+  const [fotoRota, setFotoRota] = useState(false)   // el link pegado no muestra nada
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value })
 
   async function subirFoto(e) {
@@ -388,7 +389,20 @@ function Formulario({ inicial, categorias, onCancelar, onGuardar }) {
     setSubiendo(false)
     if (error) { alert('No se pudo subir la foto: ' + error.message); return }
     const { data } = supabase.storage.from('productos').getPublicUrl(nombre)
+    setFotoRota(false)
     setF((prev) => ({ ...prev, imagen_url: data.publicUrl }))
+  }
+
+  // La otra forma de poner la foto: pegar el link de una imagen que ya está
+  // publicada en internet, sin subir nada al bucket.
+  function pegarLinkFoto(e) {
+    setFotoRota(false)
+    setF((prev) => ({ ...prev, imagen_url: e.target.value.trim() }))
+  }
+
+  function quitarFoto() {
+    setFotoRota(false)
+    setF((prev) => ({ ...prev, imagen_url: '' }))
   }
 
   return (
@@ -431,12 +445,32 @@ function Formulario({ inicial, categorias, onCancelar, onGuardar }) {
           <div>
             <span className="font-sans text-sm font-500 text-ink">Foto</span>
             <div className="mt-1.5 flex items-center gap-3">
-              {f.imagen_url
-                ? <img src={f.imagen_url} alt="" className="h-16 w-16 rounded-md border border-line object-cover" />
+              {f.imagen_url && !fotoRota
+                ? <img src={f.imagen_url} alt="" onError={() => setFotoRota(true)}
+                       className="h-16 w-16 rounded-md border border-line object-cover" />
                 : <div className="h-16 w-16 rounded-md border border-dashed border-line bg-surface-sunken" />}
               <input type="file" accept="image/*" onChange={subirFoto} className="font-sans text-sm" />
             </div>
             {subiendo && <p className="mt-1 font-sans text-sm text-ink-muted">Subiendo…</p>}
+
+            <input type="url" value={f.imagen_url} onChange={pegarLinkFoto}
+                   placeholder="https://… link de una imagen"
+                   className="mt-2 w-full rounded-lg border border-line-strong bg-surface-raised px-3 py-2.5 font-sans text-base
+                              focus:border-navy focus:outline-none" />
+            <div className="mt-1 flex items-start justify-between gap-3">
+              <span className="font-sans text-2xs text-ink-muted">
+                Subí un archivo o pegá el link de una imagen que ya esté en internet.
+              </span>
+              {f.imagen_url &&
+                <button type="button" onClick={quitarFoto}
+                        className="shrink-0 font-sans text-2xs font-600 text-ink-muted underline">
+                  Quitar foto
+                </button>}
+            </div>
+            {f.imagen_url && fotoRota &&
+              <p className="mt-1 font-sans text-2xs text-red-600">
+                Ese link no muestra ninguna imagen. Revisalo o subí el archivo.
+              </p>}
           </div>
 
           <label className="flex items-center gap-2.5">
