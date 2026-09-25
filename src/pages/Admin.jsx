@@ -45,7 +45,7 @@ export default function Admin() {
   async function recargar() {
     const [c, p] = await Promise.all([
       supabase.from('categorias').select('*').order('orden'),
-      supabase.from('productos').select('*').order('orden')
+      supabase.from('productos').select('*').order('orden').order('id')
     ])
     setCategorias(c.data ?? [])
     setProductos(p.data ?? [])
@@ -54,27 +54,41 @@ export default function Admin() {
 
   useArrastreHorizontal(cinta, [categorias.length])
 
+  // Con una sección puntual elegida y sin búsqueda, mostramos la sección
+  // entera (no solo 60) porque ahí es donde se reordena a mano y hace falta
+  // ver todo el listado para que "primero" y "último" tengan sentido.
+  const puedeReordenar = filtroCategoria !== null && !busqueda.trim()
+
   const visibles = useMemo(() => {
     const q = normalizar(busqueda).trim()
     const base = filtroCategoria === null
       ? productos
       : productos.filter((p) => p.categoria_id === filtroCategoria)
-    if (!q) return base.slice(0, 60)
+    if (!q) return filtroCategoria === null ? base.slice(0, 60) : base
     return base.filter((p) => normalizar(p.nombre).includes(q)).slice(0, 60)
   }, [productos, busqueda, filtroCategoria])
 
   /* -------------------------------------------------- acciones */
   async function guardar(form) {
+    const esNuevo = !form.id
+    const categoriaId = Number(form.categoria_id)
+    // Un producto nuevo va al final de su sección, no arriba de todo (antes
+    // quedaba con orden=0 por default y saltaba al principio de la lista).
+    const ordenNuevo = esNuevo
+      ? Math.max(0, ...productos.filter((p) => p.categoria_id === categoriaId).map((p) => p.orden)) + 1
+      : undefined
+
     const fila = {
       nombre: form.nombre.trim(),
       descripcion: form.descripcion.trim() || null,
       subcategoria: form.subcategoria.trim() || null,
-      categoria_id: Number(form.categoria_id),
+      categoria_id: categoriaId,
       precio_unit: form.precio_unit === '' ? null : Number(form.precio_unit),
       precio_pack: form.precio_pack === '' ? null : Number(form.precio_pack),
       unidades_pack: form.unidades_pack === '' ? null : Number(form.unidades_pack),
       imagen_url: form.imagen_url || null,
-      visible: form.visible
+      visible: form.visible,
+      ...(esNuevo ? { orden: ordenNuevo } : {})
     }
 
     const { error } = form.id
@@ -84,6 +98,32 @@ export default function Admin() {
     if (error) { setAviso({ tipo: 'error', texto: error.message }); return }
     setAviso({ tipo: 'ok', texto: form.id ? 'Producto actualizado' : 'Producto agregado' })
     setEditando(null)
+    recargar()
+  }
+
+  // Mueve un producto un lugar hacia arriba (-1) o abajo (+1) dentro de su
+  // propia sección, y renumera el "orden" de toda la sección para que quede
+  // consistente (resuelve de paso los empates en orden=0 de productos viejos).
+  async function moverProducto(p, direccion) {
+    const listaCategoria = productos
+      .filter((x) => x.categoria_id === p.categoria_id)
+      .slice()
+      .sort((a, b) => a.orden - b.orden || a.id - b.id)
+    const i = listaCategoria.findIndex((x) => x.id === p.id)
+    const j = i + direccion
+    if (j < 0 || j >= listaCategoria.length) return
+    ;[listaCategoria[i], listaCategoria[j]] = [listaCategoria[j], listaCategoria[i]]
+
+    const actualizaciones = listaCategoria
+      .map((x, idx) => ({ id: x.id, orden: idx + 1 }))
+      .filter((x) => productos.find((o) => o.id === x.id).orden !== x.orden)
+    if (actualizaciones.length === 0) return
+
+    const resultados = await Promise.all(
+      actualizaciones.map((u) => supabase.from('productos').update({ orden: u.orden }).eq('id', u.id))
+    )
+    const conError = resultados.find((r) => r.error)
+    if (conError) { setAviso({ tipo: 'error', texto: conError.error.message }); return }
     recargar()
   }
 
@@ -324,9 +364,25 @@ export default function Admin() {
           )}
         </div>
 
+        {!puedeReordenar && (
+          <p className="mt-3 font-sans text-2xs text-ink-muted">
+            Elegí una sección arriba (y dejá la búsqueda vacía) para poder ordenar sus productos a mano.
+          </p>
+        )}
+
         <div className="mt-4 divide-y divide-line overflow-hidden rounded-lg border border-line bg-surface-raised">
-          {visibles.map((p) => (
+          {visibles.map((p, i) => (
             <div key={p.id} className="flex items-center gap-3 px-3 py-2.5">
+              {puedeReordenar && (
+                <div className="flex shrink-0 flex-col gap-1">
+                  <button onClick={() => moverProducto(p, -1)} disabled={i === 0}
+                          aria-label="Subir"
+                          className="rounded border border-line-strong px-1.5 leading-4 text-ink disabled:opacity-30">▲</button>
+                  <button onClick={() => moverProducto(p, 1)} disabled={i === visibles.length - 1}
+                          aria-label="Bajar"
+                          className="rounded border border-line-strong px-1.5 leading-4 text-ink disabled:opacity-30">▼</button>
+                </div>
+              )}
               <div className="min-w-0 flex-1">
                 <p className="truncate font-sans text-[1rem] font-600 text-ink">{p.nombre}</p>
                 <p className="cifra truncate font-sans text-meta text-ink-muted">
@@ -353,6 +409,7 @@ export default function Admin() {
         <Formulario
           inicial={editando}
           categorias={categorias}
+          productos={productos}
           onCancelar={() => setEditando(null)}
           onGuardar={guardar}
         />
@@ -364,7 +421,7 @@ export default function Admin() {
 /* ==================================================================== */
 /* Formulario de alta / edición                                         */
 /* ==================================================================== */
-function Formulario({ inicial, categorias, onCancelar, onGuardar }) {
+function Formulario({ inicial, categorias, productos, onCancelar, onGuardar }) {
   const [f, setF] = useState({
     ...VACIO, ...inicial,
     precio_unit: inicial.precio_unit ?? '',
@@ -376,7 +433,34 @@ function Formulario({ inicial, categorias, onCancelar, onGuardar }) {
   })
   const [subiendo, setSubiendo] = useState(false)
   const [fotoRota, setFotoRota] = useState(false)   // el link pegado no muestra nada
+  // Si la subsección del producto (al editar) no está entre las de su sección
+  // actual, arrancamos mostrando el campo de texto en vez del desplegable.
+  const [subNueva, setSubNueva] = useState(false)
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value })
+
+  const subcategoriasDeLaSeccion = useMemo(() => {
+    const set = new Set()
+    for (const p of productos) {
+      if (p.categoria_id === Number(f.categoria_id) && p.subcategoria) set.add(p.subcategoria)
+    }
+    return [...set].sort((a, b) => a.localeCompare(b))
+  }, [productos, f.categoria_id])
+
+  useEffect(() => {
+    if (f.subcategoria && !subcategoriasDeLaSeccion.includes(f.subcategoria)) setSubNueva(true)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  function cambiarSeccion(e) {
+    // Al cambiar de sección las subsecciones son otras, así que no tiene
+    // sentido arrastrar la elegida antes.
+    setF((prev) => ({ ...prev, categoria_id: e.target.value, subcategoria: '' }))
+    setSubNueva(false)
+  }
+
+  function elegirSubcategoria(e) {
+    if (e.target.value === '__nueva__') { setSubNueva(true); setF((prev) => ({ ...prev, subcategoria: '' })); return }
+    setF((prev) => ({ ...prev, subcategoria: e.target.value }))
+  }
 
   async function subirFoto(e) {
     const archivo = e.target.files?.[0]
@@ -417,15 +501,39 @@ function Formulario({ inicial, categorias, onCancelar, onGuardar }) {
 
           <label className="block">
             <span className="font-sans text-sm font-500 text-ink">Sección</span>
-            <select value={f.categoria_id} onChange={set('categoria_id')}
+            <select value={f.categoria_id} onChange={cambiarSeccion}
                     className="mt-1.5 w-full rounded-lg border border-line-strong bg-surface-raised px-3 py-3 font-sans text-base
                                focus:border-navy focus:outline-none">
               {categorias.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
             </select>
           </label>
 
-          <Campo etiqueta="Subsección (opcional)" valor={f.subcategoria} onChange={set('subcategoria')}
-                 ayuda="Ej: Latas 473 ml. Sirve para agrupar dentro de la sección." />
+          <label className="block">
+            <span className="font-sans text-sm font-500 text-ink">Subsección (opcional)</span>
+            {!subNueva ? (
+              <select value={f.subcategoria} onChange={elegirSubcategoria}
+                      className="mt-1.5 w-full rounded-lg border border-line-strong bg-surface-raised px-3 py-3 font-sans text-base
+                                 focus:border-navy focus:outline-none">
+                <option value="">Sin subsección (general)</option>
+                {subcategoriasDeLaSeccion.map((s) => <option key={s} value={s}>{s}</option>)}
+                <option value="__nueva__">+ Crear subsección nueva…</option>
+              </select>
+            ) : (
+              <div className="mt-1.5 flex gap-2">
+                <input value={f.subcategoria} onChange={set('subcategoria')} autoFocus
+                       placeholder="Ej: Latas 473 ml"
+                       className="w-full rounded-lg border border-line-strong bg-surface-raised px-3 py-3 font-sans text-base
+                                  focus:border-navy focus:outline-none" />
+                <button type="button" onClick={() => { setSubNueva(false); setF((prev) => ({ ...prev, subcategoria: '' })) }}
+                        className="shrink-0 rounded-lg border border-line-strong px-3 font-sans text-sm text-ink">
+                  Cancelar
+                </button>
+              </div>
+            )}
+            <span className="mt-1 block font-sans text-2xs text-ink-muted">
+              Agrupa los productos dentro de la sección (ej: "Latas 473 ml").
+            </span>
+          </label>
 
           <div className="grid grid-cols-2 gap-3">
             <Campo etiqueta="Precio unitario" tipo="number" valor={f.precio_unit} onChange={set('precio_unit')}

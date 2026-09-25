@@ -30,7 +30,7 @@ export function useCatalogo() {
       try {
         const [cat, prod] = await Promise.all([
           supabase.from('categorias').select('*').eq('visible', true).order('orden'),
-          supabase.from('productos').select('*').eq('visible', true).order('orden')
+          supabase.from('productos').select('*').eq('visible', true).order('orden').order('id')
         ])
         if (cat.error) throw cat.error
         if (prod.error) throw prod.error
