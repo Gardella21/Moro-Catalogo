@@ -68,6 +68,20 @@ export default function Admin() {
     return base.filter((p) => normalizar(p.nombre).includes(q)).slice(0, 60)
   }, [productos, busqueda, filtroCategoria])
 
+  // Para reordenar se agrupa igual que el catálogo (por subsección), porque
+  // el orden que importa es el de adentro de cada subsección, no el de la
+  // sección entera mezclada.
+  const gruposVisibles = useMemo(() => {
+    if (!puedeReordenar) return null
+    const mapa = new Map()
+    for (const p of visibles) {
+      const clave = p.subcategoria || ''
+      if (!mapa.has(clave)) mapa.set(clave, [])
+      mapa.get(clave).push(p)
+    }
+    return [...mapa.entries()]
+  }, [visibles, puedeReordenar])
+
   /* -------------------------------------------------- acciones */
   async function guardar(form) {
     const esNuevo = !form.id
@@ -101,20 +115,41 @@ export default function Admin() {
     recargar()
   }
 
+  // Agrupa por subcategoría igual que el catálogo (src/pages/Catalogo.jsx):
+  // todos los productos de una misma subsección quedan juntos en su propio
+  // array, en el orden en que aparecen, sin importar si en la lista original
+  // había productos de otra subsección intercalados en el medio.
+  function agruparPorSubcategoria(lista) {
+    const mapa = new Map()
+    for (const p of lista) {
+      const clave = p.subcategoria || ''
+      if (!mapa.has(clave)) mapa.set(clave, [])
+      mapa.get(clave).push(p)
+    }
+    return mapa
+  }
+
   // Mueve un producto un lugar hacia arriba (-1) o abajo (+1) dentro de su
-  // propia sección, y renumera el "orden" de toda la sección para que quede
-  // consistente (resuelve de paso los empates en orden=0 de productos viejos).
+  // propia subsección (no de toda la sección — ej: mover algo dentro de
+  // "Línea Coca" sin afectar el resto de Gaseosas). Rearma la sección entera
+  // agrupada por subsección y renumera el "orden" 1..N en ese orden, lo que
+  // de paso deja cada subsección contigua y resuelve empates viejos en
+  // orden=0 o productos de otra subsección que hubieran quedado mezclados.
   async function moverProducto(p, direccion) {
     const listaCategoria = productos
       .filter((x) => x.categoria_id === p.categoria_id)
       .slice()
       .sort((a, b) => a.orden - b.orden || a.id - b.id)
-    const i = listaCategoria.findIndex((x) => x.id === p.id)
-    const j = i + direccion
-    if (j < 0 || j >= listaCategoria.length) return
-    ;[listaCategoria[i], listaCategoria[j]] = [listaCategoria[j], listaCategoria[i]]
 
-    const actualizaciones = listaCategoria
+    const mapa = agruparPorSubcategoria(listaCategoria)
+    const grupo = mapa.get(p.subcategoria || '')
+    const i = grupo.findIndex((x) => x.id === p.id)
+    const j = i + direccion
+    if (j < 0 || j >= grupo.length) return
+    ;[grupo[i], grupo[j]] = [grupo[j], grupo[i]]
+
+    const reordenada = [...mapa.values()].flat()
+    const actualizaciones = reordenada
       .map((x, idx) => ({ id: x.id, orden: idx + 1 }))
       .filter((x) => productos.find((o) => o.id === x.id).orden !== x.orden)
     if (actualizaciones.length === 0) return
@@ -366,37 +401,37 @@ export default function Admin() {
 
         {!puedeReordenar && (
           <p className="mt-3 font-sans text-2xs text-ink-muted">
-            Elegí una sección arriba (y dejá la búsqueda vacía) para poder ordenar sus productos a mano.
+            Elegí una sección arriba (y dejá la búsqueda vacía) para poder ordenar sus productos a mano,
+            subsección por subsección.
           </p>
         )}
 
-        <div className="mt-4 divide-y divide-line overflow-hidden rounded-lg border border-line bg-surface-raised">
-          {visibles.map((p, i) => (
-            <div key={p.id} className="flex items-center gap-3 px-3 py-2.5">
-              {puedeReordenar && (
-                <div className="flex shrink-0 flex-col gap-1">
-                  <button onClick={() => moverProducto(p, -1)} disabled={i === 0}
-                          aria-label="Subir"
-                          className="rounded border border-line-strong px-1.5 leading-4 text-ink disabled:opacity-30">▲</button>
-                  <button onClick={() => moverProducto(p, 1)} disabled={i === visibles.length - 1}
-                          aria-label="Bajar"
-                          className="rounded border border-line-strong px-1.5 leading-4 text-ink disabled:opacity-30">▼</button>
-                </div>
-              )}
-              <div className="min-w-0 flex-1">
-                <p className="truncate font-sans text-[1rem] font-600 text-ink">{p.nombre}</p>
-                <p className="cifra truncate font-sans text-meta text-ink-muted">
-                  {precio(p.precio_unit)}
-                  {p.subcategoria && ` · ${p.subcategoria}`}
-                  {!p.visible && ' · oculto'}
+        <div className="mt-4 overflow-hidden rounded-lg border border-line bg-surface-raised">
+          {puedeReordenar ? (
+            gruposVisibles.map(([clave, items]) => (
+              <div key={clave || '__general__'}>
+                <p className="border-b border-t border-line bg-surface px-3 py-1.5 font-sans text-2xs
+                               font-600 uppercase tracking-wide text-ink-muted first:border-t-0">
+                  {clave || 'Sin subsección'}
                 </p>
+                <div className="divide-y divide-line">
+                  {items.map((p, i) => (
+                    <FilaProducto key={p.id} p={p}
+                      onSubir={() => moverProducto(p, -1)} puedeSubir={i > 0}
+                      onBajar={() => moverProducto(p, 1)} puedeBajar={i < items.length - 1}
+                      onEditar={() => setEditando(p)} onEliminar={() => eliminar(p)} />
+                  ))}
+                </div>
               </div>
-              <button onClick={() => setEditando(p)}
-                      className="rounded-md border border-line-strong bg-surface-raised px-3 py-1.5 font-sans text-sm text-ink">Editar</button>
-              <button onClick={() => eliminar(p)}
-                      className="rounded-md px-2 py-1.5 font-sans text-sm text-bordo hover:bg-bordo-soft">Borrar</button>
+            ))
+          ) : (
+            <div className="divide-y divide-line">
+              {visibles.map((p) => (
+                <FilaProducto key={p.id} p={p}
+                  onEditar={() => setEditando(p)} onEliminar={() => eliminar(p)} />
+              ))}
             </div>
-          ))}
+          )}
           {visibles.length === 0 && (
             <p className="px-3 py-8 text-center font-sans text-sm text-ink-muted">
               No hay productos con ese nombre.
@@ -600,6 +635,33 @@ function Formulario({ inicial, categorias, productos, onCancelar, onGuardar }) {
           </button>
         </div>
       </div>
+    </div>
+  )
+}
+
+function FilaProducto({ p, onSubir, puedeSubir, onBajar, puedeBajar, onEditar, onEliminar }) {
+  return (
+    <div className="flex items-center gap-3 px-3 py-2.5">
+      {onSubir && (
+        <div className="flex shrink-0 flex-col gap-1">
+          <button onClick={onSubir} disabled={!puedeSubir} aria-label="Subir"
+                  className="rounded border border-line-strong px-1.5 leading-4 text-ink disabled:opacity-30">▲</button>
+          <button onClick={onBajar} disabled={!puedeBajar} aria-label="Bajar"
+                  className="rounded border border-line-strong px-1.5 leading-4 text-ink disabled:opacity-30">▼</button>
+        </div>
+      )}
+      <div className="min-w-0 flex-1">
+        <p className="truncate font-sans text-[1rem] font-600 text-ink">{p.nombre}</p>
+        <p className="cifra truncate font-sans text-meta text-ink-muted">
+          {precio(p.precio_unit)}
+          {p.subcategoria && ` · ${p.subcategoria}`}
+          {!p.visible && ' · oculto'}
+        </p>
+      </div>
+      <button onClick={onEditar}
+              className="rounded-md border border-line-strong bg-surface-raised px-3 py-1.5 font-sans text-sm text-ink">Editar</button>
+      <button onClick={onEliminar}
+              className="rounded-md px-2 py-1.5 font-sans text-sm text-bordo hover:bg-bordo-soft">Borrar</button>
     </div>
   )
 }
