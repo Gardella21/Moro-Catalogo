@@ -18,6 +18,7 @@ export default function Admin() {
   const [filtroCategoria, setFiltroCategoria] = useState(null)   // null = todas las secciones
   const cinta = useRef(null)                                     // cinta de chips de sección
   const [editando, setEditando] = useState(null)   // objeto producto o null
+  const [creandoSeccion, setCreandoSeccion] = useState(false)
   const [aviso, setAviso] = useState(null)
 
   /* -------------------------------------------------- ajuste de precios por lote */
@@ -115,6 +116,23 @@ export default function Admin() {
     recargar()
   }
 
+  async function guardarSeccion(nombre) {
+    const slug = normalizar(nombre).trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+    const ordenNuevo = Math.max(0, ...categorias.map((c) => c.orden)) + 1
+
+    const { error } = await supabase.from('categorias').insert({
+      nombre: nombre.trim(),
+      slug: slug || `seccion-${Date.now()}`,
+      orden: ordenNuevo,
+      visible: true
+    })
+
+    if (error) { setAviso({ tipo: 'error', texto: error.message }); return }
+    setAviso({ tipo: 'ok', texto: 'Sección agregada' })
+    setCreandoSeccion(false)
+    recargar()
+  }
+
   // Agrupa por subcategoría igual que el catálogo (src/pages/Catalogo.jsx):
   // todos los productos de una misma subsección quedan juntos en su propio
   // array, en el orden en que aparecen, sin importar si en la lista original
@@ -167,6 +185,23 @@ export default function Admin() {
     const { error } = await supabase.from('productos').delete().eq('id', p.id)
     if (error) { setAviso({ tipo: 'error', texto: error.message }); return }
     setAviso({ tipo: 'ok', texto: 'Producto eliminado' })
+    recargar()
+  }
+
+  // Una sección con productos no se puede borrar (categoria_id tiene "on
+  // delete restrict" en el schema) — se avisa antes en vez de mostrar el
+  // error crudo de Postgres.
+  async function eliminarSeccion(c) {
+    const cantidad = productos.filter((p) => p.categoria_id === c.id).length
+    if (cantidad > 0) {
+      alert(`No se puede eliminar "${c.nombre}": todavía tiene ${cantidad} producto(s) cargado(s). Moveelos a otra sección o borralos primero.`)
+      return
+    }
+    if (!confirm(`Eliminar la sección "${c.nombre}"? No se puede deshacer.`)) return
+    const { error } = await supabase.from('categorias').delete().eq('id', c.id)
+    if (error) { setAviso({ tipo: 'error', texto: error.message }); return }
+    setAviso({ tipo: 'ok', texto: 'Sección eliminada' })
+    setFiltroCategoria(null)
     recargar()
   }
 
@@ -270,6 +305,17 @@ export default function Admin() {
       </div>
 
       <div className="mx-auto max-w-3xl px-4">
+        {filtroCategoria !== null && (
+          <div className="flex justify-end pt-2">
+            <button
+              onClick={() => eliminarSeccion(categorias.find((c) => c.id === filtroCategoria))}
+              className="font-sans text-2xs font-600 text-bordo underline"
+            >
+              Eliminar sección
+            </button>
+          </div>
+        )}
+
         {aviso && (
           <p role="status" className={[
             'mt-4 rounded-md px-3 py-2 font-sans text-sm',
@@ -288,9 +334,15 @@ export default function Admin() {
           />
           <button
             onClick={() => setEditando({ ...VACIO, categoria_id: categorias[0]?.id ?? '' })}
-            className="shrink-0 rounded-lg bg-navy px-4 font-sans text-sm font-600 text-on-navy hover:bg-navy-strong"
+            className="shrink-0 rounded-lg bg-navy px-3 font-sans text-sm font-600 text-on-navy hover:bg-navy-strong"
           >
-            Agregar
+            + Producto
+          </button>
+          <button
+            onClick={() => setCreandoSeccion(true)}
+            className="shrink-0 rounded-lg border border-navy px-3 font-sans text-sm font-600 text-navy hover:bg-navy/10"
+          >
+            + Sección
           </button>
         </div>
 
@@ -447,6 +499,13 @@ export default function Admin() {
           productos={productos}
           onCancelar={() => setEditando(null)}
           onGuardar={guardar}
+        />
+      )}
+
+      {creandoSeccion && (
+        <FormularioSeccion
+          onCancelar={() => setCreandoSeccion(false)}
+          onGuardar={guardarSeccion}
         />
       )}
     </div>
@@ -632,6 +691,47 @@ function Formulario({ inicial, categorias, productos, onCancelar, onGuardar }) {
           <button onClick={() => onGuardar(f)} disabled={!f.nombre.trim() || subiendo}
                   className="flex-1 rounded-lg bg-navy py-3 font-sans text-base font-600 text-on-navy hover:bg-navy-strong disabled:opacity-50">
             Guardar
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/* ==================================================================== */
+/* Formulario de alta de sección (categoría de nivel superior)          */
+/* ==================================================================== */
+function FormularioSeccion({ onCancelar, onGuardar }) {
+  const [nombre, setNombre] = useState('')
+  const [guardando, setGuardando] = useState(false)
+
+  async function confirmar() {
+    setGuardando(true)
+    await onGuardar(nombre)
+    setGuardando(false)
+  }
+
+  return (
+    <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/40 sm:items-center">
+      <div className="w-full max-w-lg rounded-t-2xl bg-surface-raised p-5 sm:rounded-2xl">
+        <h2 className="font-serif text-xl font-700 text-ink">Nueva sección</h2>
+        <p className="mt-1 font-sans text-2xs text-ink-muted">
+          Una sección nueva del catálogo (ej: "Snacks"). Queda al final de la lista de secciones,
+          arriba se puede elegir a qué sección va cada producto.
+        </p>
+
+        <div className="mt-4">
+          <Campo etiqueta="Nombre" valor={nombre} onChange={(e) => setNombre(e.target.value)} />
+        </div>
+
+        <div className="mt-6 flex gap-3">
+          <button onClick={onCancelar}
+                  className="flex-1 rounded-lg border border-line-strong py-3 font-sans text-base font-500 text-ink">
+            Cancelar
+          </button>
+          <button onClick={confirmar} disabled={!nombre.trim() || guardando}
+                  className="flex-1 rounded-lg bg-navy py-3 font-sans text-base font-600 text-on-navy hover:bg-navy-strong disabled:opacity-50">
+            {guardando ? 'Guardando…' : 'Guardar'}
           </button>
         </div>
       </div>
