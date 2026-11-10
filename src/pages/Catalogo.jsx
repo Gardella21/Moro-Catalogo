@@ -31,7 +31,9 @@ export default function Catalogo() {
     for (const p of productos) {
       if (p.categoria_id === activa && p.subcategoria) set.add(p.subcategoria)
     }
-    return [...set].sort((a, b) => a.localeCompare(b))
+    // Mismo orden que los bloques del listado (el que se arma a mano en el
+    // panel): los productos ya vienen ordenados por "orden".
+    return [...set]
   }, [productos, activa])
 
   const filtrados = useMemo(() => {

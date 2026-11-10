@@ -166,7 +166,30 @@ export default function Admin() {
     if (j < 0 || j >= grupo.length) return
     ;[grupo[i], grupo[j]] = [grupo[j], grupo[i]]
 
-    const reordenada = [...mapa.values()].flat()
+    await guardarOrden([...mapa.values()].flat())
+  }
+
+  // Mueve una subsección entera un lugar arriba o abajo dentro de su sección
+  // (ej: dejar "Bodega Bianchi" justo debajo de "Bodega Luigi Bosca"). No hay
+  // una tabla de subsecciones: su orden sale del "orden" de sus productos,
+  // así que se mueve el bloque completo de productos y se renumera todo.
+  async function moverSubseccion(categoriaId, clave, direccion) {
+    const listaCategoria = productos
+      .filter((x) => x.categoria_id === categoriaId)
+      .slice()
+      .sort((a, b) => a.orden - b.orden || a.id - b.id)
+
+    const bloques = [...agruparPorSubcategoria(listaCategoria).entries()]
+    const i = bloques.findIndex(([c]) => c === clave)
+    const j = i + direccion
+    if (i < 0 || j < 0 || j >= bloques.length) return
+    ;[bloques[i], bloques[j]] = [bloques[j], bloques[i]]
+
+    await guardarOrden(bloques.flatMap(([, items]) => items))
+  }
+
+  // Renumera "orden" 1..N según la lista recibida y guarda solo lo que cambió.
+  async function guardarOrden(reordenada) {
     const actualizaciones = reordenada
       .map((x, idx) => ({ id: x.id, orden: idx + 1 }))
       .filter((x) => productos.find((o) => o.id === x.id).orden !== x.orden)
@@ -460,12 +483,29 @@ export default function Admin() {
 
         <div className="mt-4 overflow-hidden rounded-lg border border-line bg-surface-raised">
           {puedeReordenar ? (
-            gruposVisibles.map(([clave, items]) => (
-              <div key={clave || '__general__'}>
-                <p className="border-b border-t border-line bg-surface px-3 py-1.5 font-sans text-2xs
-                               font-600 uppercase tracking-wide text-ink-muted first:border-t-0">
-                  {clave || 'Sin subsección'}
-                </p>
+            gruposVisibles.map(([clave, items], g) => (
+              <div key={clave || '__general__'} className="border-t border-line first:border-t-0">
+                <div className="flex items-center justify-between gap-2 border-b border-line bg-surface px-3 py-1.5">
+                  <p className="font-sans text-2xs font-600 uppercase tracking-wide text-ink-muted">
+                    {clave || 'Sin subsección'}
+                  </p>
+                  {gruposVisibles.length > 1 && (
+                    <div className="flex shrink-0 gap-1">
+                      <button onClick={() => moverSubseccion(filtroCategoria, clave, -1)} disabled={g === 0}
+                        title="Subir subsección" aria-label={`Subir subsección ${clave || 'Sin subsección'}`}
+                        className="rounded border border-line px-2 py-0.5 font-sans text-2xs text-ink-muted
+                                   hover:bg-surface-raised disabled:opacity-30">
+                        ▲ Subir
+                      </button>
+                      <button onClick={() => moverSubseccion(filtroCategoria, clave, 1)} disabled={g === gruposVisibles.length - 1}
+                        title="Bajar subsección" aria-label={`Bajar subsección ${clave || 'Sin subsección'}`}
+                        className="rounded border border-line px-2 py-0.5 font-sans text-2xs text-ink-muted
+                                   hover:bg-surface-raised disabled:opacity-30">
+                        ▼ Bajar
+                      </button>
+                    </div>
+                  )}
+                </div>
                 <div className="divide-y divide-line">
                   {items.map((p, i) => (
                     <FilaProducto key={p.id} p={p}
