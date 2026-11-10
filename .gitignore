@@ -18,3 +18,8 @@ scripts/fotos-web
 scripts/faltan-fotos.csv
 scripts/faltan-fotos.html
 scripts/ean-candidatos.json
+
+# Listas de precios (privadas, repo público)
+LISTA DE PRECIOS*.csv
+scripts/fotos-web-originales
+Logo-Nuevo.jpeg
